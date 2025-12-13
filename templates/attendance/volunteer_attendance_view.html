@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Mark Attendance{% endblock %}
+
+{# ---------------- TOP RIGHT ---------------- #}
+{% block nav_right %}
+<form action="{% url 'logout' %}" method="post" style="margin:0;">
+    {% csrf_token %}
+    <button type="submit" class="logout-btn">Logout</button>
+</form>
+{% endblock %}
+
+{# ---------------- SIDEBAR ---------------- #}
+{% block sidebar_links %}
+<ul class="sidebar-links">
+    <li>
+        <a href="{% url 'volunteer_dashboard' %}">Dashboard</a>
+    </li>
+    <li>
+        <a href="{% url 'mark_attendance' %}">Attendance</a>
+    </li>
+    <li>
+        <a href="#">Lectures</a>
+    </li>
+    <li>
+        <a href="#">Change Password</a>
+    </li>
+</ul>
+{% endblock %}
+
+{# ---------------- MAIN CONTENT ---------------- #}
+{% block content %}
+<style>
+    .attendance-container {
+    max-width: 600px;
+    width: 100%;
+    margin: 0 auto;          /* centers container */
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+
+    .page-title {
+        font-size: 22px;
+        font-weight: bold;
+        color: var(--brown);
+    }
+
+    .card {
+    background: #ffffff;
+    border: 1px solid var(--brown);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    width: 100%;            /* ensures full width on mobile */
+}
+
+
+    .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 14px;
+    }
+
+    .field label {
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    .input {
+        padding: 10px 12px;
+        border: 1px solid var(--brown);
+        border-radius: 6px;
+        font-size: 16px;
+    }
+
+    .actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 10px;
+    }
+
+    .submit-btn {
+        background: var(--red);
+        color: var(--offwhite);
+        border: none;
+        border-radius: 6px;
+        padding: 10px 16px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+</style>
+
+<div class="attendance-container">
+
+    <div class="page-title">Mark Attendance</div>
+
+    <div class="card">
+        <form method="post">
+            {% csrf_token %}
+
+            <!-- Lecture Selection -->
+            <div class="field">
+                <label for="lecture">Today's Lecture</label>
+                <select name="lecture" id="lecture" class="input" required>
+                    <option value="">Select lecture</option>
+                    {% for lecture in todays_lectures %}
+                        <option value="{{ lecture.id }}">
+                            {{ lecture.batch.name }} / {{ lecture.slot.name }} — {{ lecture.date }}
+                        </option>
+                    {% empty %}
+                        <option disabled>No lectures scheduled for today</option>
+                    {% endfor %}
+                </select>
+                <small style="margin-top:4px; color:#555;">
+        Can't see today's lecture?
+        <a href="#" style="color: var(--red); font-weight: bold;">
+            Schedule a lecture.
+        </a>
+    </small>
+            </div>
+
+            <!-- Roll Number -->
+            <div class="field">
+                <label for="roll_no">Student Roll Number</label>
+                <input
+                    type="text"
+                    id="roll_no"
+                    name="roll_no"
+                    class="input"
+                    placeholder="Enter roll number"
+                    required
+                >
+            </div>
+
+            <!-- Attendance Status -->
+            <div class="field">
+                <label for="status">Status</label>
+                <select name="status" id="status" class="input" required>
+                    <option value="PRESENT">Present</option>
+                    <option value="ABSENT">Absent</option>
+                </select>
+            </div>
+
+            <!-- Submit -->
+            <div class="actions">
+                <button type="submit" class="submit-btn">
+                    Mark Attendance
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Volunteer Dashboard{% endblock %}
+
+{# ---------------- TOP RIGHT ---------------- #}
+{% block nav_right %}
+<form action="{% url 'logout' %}" method="post" style="margin:0;">
+    {% csrf_token %}
+    <button type="submit" class="logout-btn">Logout</button>
+</form>
+{% endblock %}
+
+{# ---------------- SIDEBAR ---------------- #}
+{% block sidebar_links %}
+<ul class="sidebar-links">
+    <li><a href="{% url 'mark_attendance' %}">Attendance</a></li>
+    <li><a href="#">Lectures</a></li>
+    <li><a href="#">Change Password</a></li>
+</ul>
+{% endblock %}
+
+{# ---------------- MAIN CONTENT ---------------- #}
+{% block content %}
+<style>
+    .dashboard-container {
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+        max-width: 900px;
+    }
+
+    .welcome-box {
+        background-color: var(--red);
+        color: var(--offwhite);
+        padding: 20px 24px;
+        border-radius: 8px;
+        font-size: 20px;
+        font-weight: bold;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    }
+
+    .cards-row {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .card {
+        background: #ffffff;
+        border: 1px solid var(--brown);
+        border-radius: 8px;
+        padding: 20px;
+        width: 260px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    }
+
+    .card-title {
+        font-size: 15px;
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: var(--brown);
+    }
+
+    .card-value {
+        font-size: 32px;
+        font-weight: bold;
+        color: var(--red);
+    }
+
+    .card-subtext {
+        margin-top: 6px;
+        font-size: 14px;
+        color: #555;
+    }
+</style>
+
+<div class="dashboard-container">
+
+    <!-- Welcome -->
+    <div class="welcome-box">
+        Volunteer Dashboard —
+        Welcome, {{ request.user.full_name|default:request.user.email }}!
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="cards-row">
+
+        <div class="card">
+            <div class="card-title">Today's Attendance</div>
+            <div class="card-value">
+                {{ attendance_percent|default:0 }}%
+            </div>
+            <div class="card-subtext">Students Present</div>
+        </div>
+
+        <div class="card">
+            <div class="card-title">Today's Lectures</div>
+            <div class="card-value">
+                {{ today_lectures_count|default:0 }}
+            </div>
+            <div class="card-subtext">
+                Total Students: {{ today_students_count|default:0 }}
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance | Admin{% endblock %}
+
+{% block sidebar_links %}
+<li><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
+<li><a href="#">Lectures</a></li>
+<li><a href="#">Reports</a></li>
+<li><a href="#">Notifier</a></li>
+<li><a href="#">Audit Logs</a></li>
+<li><a href="#">Change Password</a></li>
+{% endblock %}
+
+{% block content %}
+<style>
+    .search-bar {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+    }
+
+    .search-bar input {
+        padding: 8px;
+        width: 250px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .search-bar button {
+        padding: 8px 14px;
+        background-color: var(--red);
+        color: var(--offwhite);
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: bold;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: #ffffff;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    th, td {
+        padding: 10px;
+        border-right: 1px solid #fc8f8fff;
+        border-bottom: 1px solid #ddd;
+        text-align: left;
+    }
+    .first-header {
+        border-top-left-radius: 6px;
+    }
+    .last-header {
+        border-top-right-radius: 6px;
+    }
+
+    th {
+        background-color: var(--red);
+        color: var(--offwhite);
+    }
+
+    tr:hover {
+        background-color: #f3ece7;
+        cursor: pointer;
+    }
+
+    .pagination {
+        margin-top: 20px;
+        display: flex;
+        gap: 8px;
+    }
+
+    .pagination a {
+        padding: 6px 10px;
+        border: 1px solid var(--red);
+        text-decoration: none;
+        color: var(--red);
+        border-radius: 4px;
+        font-weight: bold;
+    }
+
+    .pagination .active {
+        background-color: var(--red);
+        color: var(--offwhite);
+    }
+</style>
+
+<h2>Student Attendance Overview</h2>
+
+<!-- SEARCH -->
+<form method="get" class="search-bar">
+    <input type="text" name="q" placeholder="Search by roll no / name" value="{{ request.GET.q }}">
+    <button type="submit">Search</button>
+</form>
+
+<!-- STUDENT TABLE -->
+<table>
+    <tr>
+        <th class="first-header">Roll No</th>
+        <th>Name</th>
+        <th>Branch</th>
+        <th>Batch</th>
+        <th class="last-header">Slot</th>
+    </tr>
+
+    {% for student in page_obj %}
+    <tr onclick="window.location.href='#'"> <!--- TODO--->
+        <td>{{ student.roll_number }}</td>
+        <td>{{ student.full_name }}</td>
+        <td>{{ student.branch }}</td>
+        <td>{{ student.batch }}</td>
+        <td>{{ student.slot }}</td>
+    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="5">No students found</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<!-- PAGINATION -->
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q }}">Prev</a>
+    {% endif %}
+
+    <span class="active">{{ page_obj.number }}</span>
+
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q }}">Next</a>
+    {% endif %}
+</div>
+
+{% endblock %}
