@@ -3,8 +3,9 @@
 {% block title %}Attendance | Admin{% endblock %}
 
 {% block sidebar_links %}
-<li><a href="{% url 'admin_dashboard' %}">Dashboard</a></li>
-<li><a href="#">Lectures</a></li>
+<li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+<li><a href="#" class="active">Attendance</a></li>
+<li><a href="{% url 'manage_lectures' %}">Lectures</a></li>
 <li><a href="#">Reports</a></li>
 <li><a href="#">Notifier</a></li>
 <li><a href="#">Audit Logs</a></li>

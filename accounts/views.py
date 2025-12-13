@@ -43,3 +43,11 @@ def volunteer_dashboard(request):
         return redirect("login")
 
     return render(request, "dashboards/volunteer_dashboard.html")
+
+@login_required
+def dashboard_redirect(request):
+    if request.user.role == "ADMIN":
+        return redirect("admin_dashboard")
+    elif request.user.role == "VOLUNTEER":
+        return redirect("volunteer_dashboard")
+    return redirect("login")

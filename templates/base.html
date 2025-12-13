@@ -63,7 +63,6 @@
         gap: 10px;
         margin-bottom: 20px;
       }
-      
 
       .toggle-btn {
         background: transparent;
@@ -100,7 +99,11 @@
         padding: 8px;
         border-radius: 4px;
       }
-
+      .sidebar-links a.active {
+        background: var(--offwhite);
+        color: var(--red);
+        box-shadow: inset 4px 0 0 var(--red);
+      }
       .sidebar.collapsed .sidebar-user,
       .sidebar.collapsed .sidebar-links {
         display: none;
@@ -180,7 +183,11 @@
 
           <div class="sidebar-user">
             <span class="welcome-text">Welcome</span>
-            <u><strong class="user-name">{{ request.user.full_name }}</strong></u>
+            <u
+              ><strong class="user-name"
+                >{{ request.user.full_name }}</strong
+              ></u
+            >
           </div>
         </div>
 

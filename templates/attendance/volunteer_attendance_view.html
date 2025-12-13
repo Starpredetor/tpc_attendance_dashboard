@@ -14,13 +14,13 @@
 {% block sidebar_links %}
 <ul class="sidebar-links">
     <li>
-        <a href="{% url 'volunteer_dashboard' %}">Dashboard</a>
+        <a href="{% url 'dashboard' %}">Dashboard</a>
     </li>
     <li>
-        <a href="{% url 'mark_attendance' %}">Attendance</a>
+        <a href="#" class="active">Attendance</a>
     </li>
     <li>
-        <a href="#">Lectures</a>
+        <a href="{% url 'manage_lectures' %}">Lectures</a>
     </li>
     <li>
         <a href="#">Change Password</a>
@@ -116,7 +116,7 @@
                 </select>
                 <small style="margin-top:4px; color:#555;">
         Can't see today's lecture?
-        <a href="#" style="color: var(--red); font-weight: bold;">
+        <a href="{% url 'manage_lectures' %}" style="color: var(--red); font-weight: bold;">
             Schedule a lecture.
         </a>
     </small>
