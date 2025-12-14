@@ -2,7 +2,6 @@
 
 {% block title %}Mark Attendance{% endblock %}
 
-{# ---------------- TOP RIGHT ---------------- #}
 {% block nav_right %}
 <form action="{% url 'logout' %}" method="post" style="margin:0;">
     {% csrf_token %}
@@ -10,141 +9,162 @@
 </form>
 {% endblock %}
 
-{# ---------------- SIDEBAR ---------------- #}
 {% block sidebar_links %}
+{% if user.role == 'VOLUNTEER' %}
 <ul class="sidebar-links">
-    <li>
-        <a href="{% url 'dashboard' %}">Dashboard</a>
-    </li>
-    <li>
-        <a href="#" class="active">Attendance</a>
-    </li>
-    <li>
-        <a href="{% url 'manage_lectures' %}">Lectures</a>
-    </li>
-    <li>
-        <a href="#">Change Password</a>
-    </li>
+    <li><a href="{% url 'dashboard' %}">Dashboard</a></li>   
+    <li><a href="#" class="active">Attendance</a></li>
+    <li><a href="{% url 'manage_lectures' %}">Lectures</a></li>
+    <li><a href="#">Change Password</a></li>
 </ul>
+{% else %}
+<ul class="sidebar-links">
+    <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+    <li><a href="{% url 'admin_attendance_list' %}" class="active">Attendance</a></li>
+    <li><a href="{% url 'manage_lectures' %}">Lectures</a></li>
+    <li><a href="#">Reports</a></li>
+    <li><a href="#">Notifier</a></li>
+    <li><a href="#">Audit Logs</a></li>
+    <li><a href="#">Change Password</a></li>
+</ul>
+{% endif %}
 {% endblock %}
 
-{# ---------------- MAIN CONTENT ---------------- #}
 {% block content %}
 <style>
-    .attendance-container {
+.attendance-container {
     max-width: 600px;
     width: 100%;
-    margin: 0 auto;          /* centers container */
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
     gap: 20px;
 }
 
+.page-title {
+    font-size: 22px;
+    font-weight: bold;
+    color: var(--brown);
+}
 
-    .page-title {
-        font-size: 22px;
-        font-weight: bold;
-        color: var(--brown);
-    }
-
-    .card {
+.card {
     background: #ffffff;
     border: 1px solid var(--brown);
     border-radius: 8px;
     padding: 20px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.12);
-    width: 100%;            /* ensures full width on mobile */
+    width: 100%;
 }
 
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+}
 
-    .field {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        margin-bottom: 14px;
-    }
+.field label {
+    font-weight: bold;
+    font-size: 14px;
+}
 
-    .field label {
-        font-weight: bold;
-        font-size: 14px;
-    }
+.input {
+    padding: 10px 12px;
+    border: 1px solid var(--brown);
+    border-radius: 6px;
+    font-size: 16px;
+}
 
-    .input {
-        padding: 10px 12px;
-        border: 1px solid var(--brown);
-        border-radius: 6px;
-        font-size: 16px;
-    }
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
 
-    .actions {
-        display: flex;
-        justify-content: flex-end;
-        margin-top: 10px;
-    }
-
-    .submit-btn {
-        background: var(--red);
-        color: var(--offwhite);
-        border: none;
-        border-radius: 6px;
-        padding: 10px 16px;
-        font-weight: bold;
-        cursor: pointer;
-    }
+.submit-btn {
+    background: var(--red);
+    color: var(--offwhite);
+    border: none;
+    border-radius: 6px;
+    padding: 10px 16px;
+    font-weight: bold;
+    cursor: pointer;
+}
 </style>
 
 <div class="attendance-container">
 
     <div class="page-title">Mark Attendance</div>
+    {% if messages %}
+    <div style="display:flex; flex-direction:column; gap:10px;">
+        {% for message in messages %}
+            <div style="
+                padding:12px;
+                border-radius:6px;
+                font-weight:bold;
+                background:
+                    {% if message.tags == 'success' %}#e8f5e9{% elif message.tags == 'error' %}#ffebee{% else %}#e3f2fd{% endif %};
+                color:
+                    {% if message.tags == 'success' %}#2e7d32{% elif message.tags == 'error' %}#c62828{% else %}#1565c0{% endif %};
+                border:1px solid
+                    {% if message.tags == 'success' %}#4caf50{% elif message.tags == 'error' %}#ef5350{% else %}#64b5f6{% endif %};
+            ">
+                {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
 
     <div class="card">
         <form method="post">
             {% csrf_token %}
 
-            <!-- Lecture Selection -->
             <div class="field">
                 <label for="lecture">Today's Lecture</label>
                 <select name="lecture" id="lecture" class="input" required>
                     <option value="">Select lecture</option>
                     {% for lecture in todays_lectures %}
-                        <option value="{{ lecture.id }}">
+                        <option value="{{ lecture.id }}"
+                            {% if selected_lecture_id == lecture.id|stringformat:"s" %}
+                                selected
+                            {% endif %}
+                        >
                             {{ lecture.batch.name }} / {{ lecture.slot.name }} — {{ lecture.date }}
                         </option>
                     {% empty %}
                         <option disabled>No lectures scheduled for today</option>
                     {% endfor %}
                 </select>
+
                 <small style="margin-top:4px; color:#555;">
-        Can't see today's lecture?
-        <a href="{% url 'manage_lectures' %}" style="color: var(--red); font-weight: bold;">
-            Schedule a lecture.
-        </a>
-    </small>
+                    Can't see today's lecture?
+                    <a href="{% url 'manage_lectures' %}" style="color: var(--red); font-weight: bold;">
+                        Schedule a lecture.
+                    </a>
+                </small>
             </div>
 
-            <!-- Roll Number -->
             <div class="field">
-                <label for="roll_no">Student Roll Number</label>
+                <label for="roll_number">Student Roll Number</label>
                 <input
                     type="text"
-                    id="roll_no"
-                    name="roll_no"
+                    id="roll_number"
+                    name="roll_number"
                     class="input"
                     placeholder="Enter roll number"
                     required
+                    autofocus
                 >
             </div>
 
-            <!-- Attendance Status -->
             <div class="field">
                 <label for="status">Status</label>
                 <select name="status" id="status" class="input" required>
-                    <option value="PRESENT">Present</option>
-                    <option value="ABSENT">Absent</option>
+                    <option value="P">Present</option>
+                    <option value="A">Absent</option>
                 </select>
             </div>
 
-            <!-- Submit -->
             <div class="actions">
                 <button type="submit" class="submit-btn">
                     Mark Attendance

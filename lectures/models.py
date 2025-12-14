@@ -48,4 +48,4 @@ class Lecture(models.Model):
         unique_together = ("batch", "date", "lecture_type")
 
     def __str__(self):
-        return f"{self.title} ({self.date})"
+        return f"{self.title} ({self.date} {self.batch.name} {self.lecture_type})"

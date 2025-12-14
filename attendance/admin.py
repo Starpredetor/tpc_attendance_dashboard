@@ -11,7 +11,8 @@ class AttendanceRecordAdmin(admin.ModelAdmin):
         "lecture",
         "status",
         "marked_by",
-        "timestamp",
+        "marked_at",
+        "updated_at",
     )
     list_filter = (
         "status",
@@ -22,8 +23,9 @@ class AttendanceRecordAdmin(admin.ModelAdmin):
         "student__roll_no",
         "student__full_name",
     )
-    autocomplete_fields = ("student", "lecture", "marked_by")
-    readonly_fields = ("timestamp",)
+    autocomplete_fields = ("student", "lecture")
+    readonly_fields = ("student","lecture", "marked_by","marked_at","updated_at")
 
     def has_delete_permission(self, request, obj=None):
         return request.user.role == "ADMIN"
+    
