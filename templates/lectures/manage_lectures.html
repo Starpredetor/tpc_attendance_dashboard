@@ -100,6 +100,26 @@
 </style>
 
 <div class="page">
+{% if messages %}
+<div style="
+                padding:12px;
+                border-radius:6px;
+                font-weight:bold;
+                background:
+                    {% if message.tags == 'success' %}#e8f5e9{% elif message.tags == 'error' %}#ffebee{% else %}#e3f2fd{% endif %};
+                color:
+                    {% if message.tags == 'success' %}#2e7d32{% elif message.tags == 'error' %}#c62828{% else %}#1565c0{% endif %};
+                border:1px solid
+                    {% if message.tags == 'success' %}#4caf50{% elif message.tags == 'error' %}#ef5350{% else %}#64b5f6{% endif %};
+            ">
+    {% for message in messages %}
+        <div class="alert {{ message.tags }}">
+            {{ message }}
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 
     <div class="page-header">
         <h2>Lectures</h2>
@@ -109,11 +129,11 @@
     {% if lectures %}
         {% regroup lectures by date as lectures_by_date %}
         {% for day in lectures_by_date %}
-            <div class="day-card {% if day.grouper == today_date %}open{% endif %}">
+            <div class="day-card {% if day.grouper == todays_date %}open{% endif %}">
                 <div class="day-header" onclick="toggleDay(this)">
                     <span>
                         {{ day.grouper }}
-                        {% if day.grouper == today_date %}
+                        {% if day.grouper == todays_date %}
                             <span class="badge badge-green">Today</span>
                         {% endif %}
                     </span>
@@ -124,14 +144,17 @@
                     <div class="lecture-grid">
                         {% for lec in day.list %}
                             <div class="lecture-card">
-                                <strong>{{ lec.batch.name }} / {{ lec.slot.name }}</strong><br>
+                                <strong>{{ lec.batch.name }} / {{ lec.get_lecture_type_display }}</strong><br>
                                 <small>{{ lec.get_lecture_type_display }} — {{ lec.title|default:"-" }}</small>
 
                                 <div class="lecture-actions">
-                                    <a href="{% url 'mark_attendance' %}?lecture={{ lec.id }}" class="btn btn-green">
+                                    <a href="{% url 'mark_attendance' %}" class="btn btn-green">
                                         Mark Attendance
                                     </a>
-                                    <a href="{% url 'edit_lecture' lec.id %}" class="btn btn-primary">Edit</a>
+                                    <button class="btn btn-primary"
+                                        onclick="openEditLectureModal('{{ lec.id }}','{{ lec.date|date:'Y-m-d' }}','{{ lec.slot.id }}','{{ lec.batch.id }}','{{ lec.lecture_type }}','{{ lec.title|default:'' }}')">
+                                        Edit
+                                    </button>
                                     <button class="btn btn-red"
                                         onclick="openAbsentModal('{{ lec.id }}','{{ lec.batch.name }}','{{ lec.date }}')">
                                         Mark Absent
@@ -166,25 +189,28 @@
             <div class="field">
                 <label>Slot</label>
                 <select name="slot" class="input" required>
+                <option value="NONE" disabled selected>Select Slot</option>
                     {% for slot in slots %}<option value="{{ slot.id }}">{{ slot.name }}</option>{% endfor %}
                 </select>
             </div>
             <div class="field">
                 <label>Batch</label>
                 <select name="batch" class="input" required>
+                <option value="NONE" disabled selected>Select Batch</option>
                     {% for batch in batches %}<option value="{{ batch.id }}">{{ batch.name }}</option>{% endfor %}
                 </select>
             </div>
             <div class="field">
                 <label>Lecture Type</label>
                 <select name="lecture_type" class="input" required>
+                    <option value="NONE" disabled selected>Select Lecture type</option>
                     <option value="MS">Morning</option>
                     <option value="AS">Afternoon</option>
                 </select>
             </div>
             <div class="field">
                 <label>Title</label>
-                <input type="text" name="title" class="input">
+                <input type="text" name="title" class="input" placeholder="Aptitude Lecture...">
             </div>
 
             <div class="modal-actions">
@@ -194,6 +220,7 @@
         </form>
     </div>
 </div>
+<!-- Mark Absent MODAL -->
 <div class="modal-backdrop" id="absent-modal">
     <div class="modal">
         <h3>Confirm Mark Absent</h3>
@@ -213,6 +240,64 @@
         </div>
     </div>
 </div>
+
+<!-- EDIT LECTURE MODAL -->
+<div class="modal-backdrop" id="edit-lecture-modal">
+    <div class="modal">
+        <h3>Edit Lecture</h3>
+
+        <form id="edit-lecture-form" method="post">
+            {% csrf_token %}
+
+            <div class="field">
+                <label>Date</label>
+                <input type="date" name="date" id="edit-date" class="input" required>
+            </div>
+
+            <div class="field">
+                <label>Slot</label>
+                <select name="slot" id="edit-slot" class="input" required>
+                    {% for slot in slots %}
+                        <option value="{{ slot.id }}">{{ slot.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="field">
+                <label>Batch</label>
+                <select name="batch" id="edit-batch" class="input" required>
+                    {% for batch in batches %}
+                        <option value="{{ batch.id }}">{{ batch.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="field">
+                <label>Lecture Type</label>
+                <select name="lecture_type" id="edit-lecture-type" class="input" required>
+                    <option value="MS">Morning Session</option>
+                    <option value="AS">Afternoon Session</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label>Title</label>
+                <input type="text" name="title" id="edit-title" class="input">
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn" onclick="closeEditLectureModal()">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- DELETE LECTURE MODAL -->
 <div class="modal-backdrop" id="delete-lecture-modal">
     <div class="modal">
         <h3>Delete Lecture</h3>
@@ -254,6 +339,23 @@ function openDeleteLectureModal(id,title){
     document.getElementById("delete-lecture-modal").style.display="flex";
 }
 function closeDeleteLectureModal(){ document.getElementById("delete-lecture-modal").style.display = "none"; }
+
+function openEditLectureModal(id, date, slotId, batchId, lectureType, title) {
+    document.getElementById("edit-date").value = date;
+    document.getElementById("edit-slot").value = slotId;
+    document.getElementById("edit-batch").value = batchId;
+    document.getElementById("edit-lecture-type").value = lectureType;
+    document.getElementById("edit-title").value = title || "";
+
+    document.getElementById("edit-lecture-form").action =
+        `/lectures/edit/${id}/`;
+
+    document.getElementById("edit-lecture-modal").style.display = "flex";
+}
+
+function closeEditLectureModal() {
+    document.getElementById("edit-lecture-modal").style.display = "none";
+}
 </script>
 
 {% endblock %}

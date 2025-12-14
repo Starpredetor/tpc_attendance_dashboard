@@ -28,8 +28,7 @@ def mark_absent_for_date(target_date: date | None = None):
     lectures = Lecture.objects.filter(date=target_date)
 
     if not lectures.exists():
-        return  # No lectures today → do nothing
-
+        return  
     for lecture in lectures:
         students = Student.objects.filter(
             batch=lecture.batch,
@@ -41,9 +40,7 @@ def mark_absent_for_date(target_date: date | None = None):
             lecture=lecture,
             status=PRESENT,
         ).values_list("student_id", flat=True)
-
         absent_students = students.exclude(id__in=present_student_ids)
-
         for student in absent_students:
             AttendanceRecord.objects.get_or_create(
                 student=student,
@@ -52,6 +49,7 @@ def mark_absent_for_date(target_date: date | None = None):
                     "status": ABSENT,
                 },
             )
+        print(f"Marked {len(absent_students) or 0} absent for lecture {lecture.id} on {target_date}")
         AuditLog.objects.create(
         action="EOD_ABSENCE_MARK",
         metadata={"date": str(target_date)},

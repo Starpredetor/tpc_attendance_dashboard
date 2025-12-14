@@ -1,4 +1,3 @@
-# lectures/urls.py
 from django.urls import path
 from .views import manage_lectures, edit_lecture, delete_lecture, create_lecture
 

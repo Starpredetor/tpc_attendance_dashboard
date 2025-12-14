@@ -90,6 +90,41 @@
     font-weight: bold;
     cursor: pointer;
 }
+@media (max-width: 768px) {
+
+    .sidebar {
+        position: fixed;
+        left: -260px;
+        top: 0;
+        height: 100%;
+        width: 240px;
+        background: white;
+        z-index: 2000;
+        transition: left 0.3s ease;
+        display: block;
+    }
+
+    .sidebar.open {
+        left: 0;
+    }
+
+    .toggle-btn {
+        display: inline-block;
+        font-size: 22px;
+        background: transparent;
+        border: none;
+        color: var(--offwhite);
+        cursor: pointer;
+    }
+
+    .main-area {
+        width: 100%;
+        margin: 0;
+    }
+}
+
+
+
 </style>
 
 <div class="attendance-container">
@@ -103,11 +138,11 @@
                 border-radius:6px;
                 font-weight:bold;
                 background:
-                    {% if message.tags == 'success' %}#e8f5e9{% elif message.tags == 'error' %}#ffebee{% else %}#e3f2fd{% endif %};
+                    {% if message.tags == 'success' %}#e8f5e9{% else %}#ffebee{% endif %};
                 color:
-                    {% if message.tags == 'success' %}#2e7d32{% elif message.tags == 'error' %}#c62828{% else %}#1565c0{% endif %};
+                    {% if message.tags == 'success' %}#2e7d32{% else %}#c62828{% endif %};
                 border:1px solid
-                    {% if message.tags == 'success' %}#4caf50{% elif message.tags == 'error' %}#ef5350{% else %}#64b5f6{% endif %};
+                    {% if message.tags == 'success' %}#4caf50{% else %}#ef5350{% endif %};
             ">
                 {{ message }}
                 </div>
@@ -118,31 +153,6 @@
     <div class="card">
         <form method="post">
             {% csrf_token %}
-
-            <div class="field">
-                <label for="lecture">Today's Lecture</label>
-                <select name="lecture" id="lecture" class="input" required>
-                    <option value="">Select lecture</option>
-                    {% for lecture in todays_lectures %}
-                        <option value="{{ lecture.id }}"
-                            {% if selected_lecture_id == lecture.id|stringformat:"s" %}
-                                selected
-                            {% endif %}
-                        >
-                            {{ lecture.batch.name }} / {{ lecture.slot.name }} — {{ lecture.date }}
-                        </option>
-                    {% empty %}
-                        <option disabled>No lectures scheduled for today</option>
-                    {% endfor %}
-                </select>
-
-                <small style="margin-top:4px; color:#555;">
-                    Can't see today's lecture?
-                    <a href="{% url 'manage_lectures' %}" style="color: var(--red); font-weight: bold;">
-                        Schedule a lecture.
-                    </a>
-                </small>
-            </div>
 
             <div class="field">
                 <label for="roll_number">Student Roll Number</label>
@@ -156,6 +166,15 @@
                     autofocus
                 >
             </div>
+            <div class="field">
+    <label for="session_part">Session</label>
+    <select name="session_part" id="session_part" class="input">
+        <option value="BOTH" selected>Morning + Afternoon</option>
+        <option value="MS">Morning Only</option>
+        <option value="AS">Afternoon Only</option>
+    </select>
+</div>
+
 
             <div class="field">
                 <label for="status">Status</label>
@@ -175,4 +194,11 @@
     </div>
 
 </div>
+<script>
+    document.getElementById('roll_number').focus();
+    function toggleSidebar() {
+    document.querySelector('.sidebar')?.classList.toggle('open');
+}
+
+</script>
 {% endblock %}

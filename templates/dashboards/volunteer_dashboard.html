@@ -2,7 +2,6 @@
 
 {% block title %}Volunteer Dashboard{% endblock %}
 
-{# ---------------- TOP RIGHT ---------------- #}
 {% block nav_right %}
 <form action="{% url 'logout' %}" method="post" style="margin:0;">
     {% csrf_token %}
@@ -10,7 +9,6 @@
 </form>
 {% endblock %}
 
-{# ---------------- SIDEBAR ---------------- #}
 {% block sidebar_links %}
 <ul class="sidebar-links">
     <li><a href="#" class="active">Dashboard</a></li>
@@ -20,7 +18,6 @@
 </ul>
 {% endblock %}
 
-{# ---------------- MAIN CONTENT ---------------- #}
 {% block content %}
 <style>
     .dashboard-grid {
@@ -75,7 +72,7 @@
 
     <a href="#" class="card">
         <h3>Today Present %</h3>
-        <p>{{ today_present_percent|default:0 }}%</p>
+        <p>{{ attendance_percent|default:0 }}%</p>
     </a>
 </div>
 

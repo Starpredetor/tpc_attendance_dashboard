@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from students.models import Student
 from django.core.paginator import Paginator
 from django.urls import reverse
+import re
 
 
 
@@ -41,50 +42,54 @@ def admin_attendance_list(request):
 
 
 
-
 @login_required
 def mark_attendance(request):
     today = timezone.localdate()
-    # Only today's lectures
-    todays_lectures = Lecture.objects.filter(date=today)
-
-    # Lecture context (for GET + POST redirect preservation)
-    selected_lecture_id = request.GET.get("lecture")
-
-    if request.method == "POST":
-        lecture_id = request.POST.get("lecture")
-        roll_number = request.POST.get("roll_number")
-        status = request.POST.get("status")
-
-
-        if not lecture_id or not roll_number or not status:
-            messages.error(request, "All fields are required.")
-            return redirect(f"{reverse('mark_attendance')}?lecture={lecture_id}")
-
-
-        lecture = get_object_or_404(
-            Lecture,
-            id=lecture_id,
-            date=today,
+    
+    if request.method == "GET":
+        return render(
+            request,
+            "attendance/volunteer_attendance_view.html",
         )
 
-        try:
-            student = Student.objects.get(
-                roll_number=roll_number,
-                is_active=True,
-            )
-        except Student.DoesNotExist:
-            messages.error(request, "Invalid roll number.")
-            return redirect(f"{reverse('mark_attendance')}?lecture={lecture.id}")
+    roll_number = request.POST.get("roll_number")
+    if not re.match(r'^(23|24)[A-Z]{2}\d{4}$', roll_number):
+        messages.error(request, "Invalid roll number format. Enter Manually.")
+        return redirect("mark_attendance")
 
-        if student.batch != lecture.batch or student.slot != lecture.slot:
-            messages.error(
-                request,
-                "Student does not belong to this lecture's batch or slot. From Batch: "f"{student.batch.name}")
-            return redirect(f"{reverse('mark_attendance')}?lecture={lecture.id}")
+    status = request.POST.get("status")
+    session_part = request.POST.get("session_part", "BOTH")
 
+    if not roll_number or not status:
+        messages.error(request, "Roll number and status are required.")
+        return redirect("mark_attendance")
 
-        attendance, created = AttendanceRecord.objects.update_or_create(
+    try:
+        student = Student.objects.get(roll_number=roll_number, is_active=True)
+    except Student.DoesNotExist:
+        messages.error(request, "Invalid roll number. Student not found.")
+        return redirect("mark_attendance")
+
+    lectures_qs = Lecture.objects.filter(
+        date=today,
+        batch=student.batch,
+        slot=student.slot,
+    )
+
+    if session_part != "BOTH":
+        lectures_qs = lectures_qs.filter(lecture_type=session_part)
+
+    if not lectures_qs.exists():
+        messages.error(
+            request,
+            "No matching lectures found for this student today."
+        )
+        return redirect("mark_attendance")
+
+    marked_sessions = []
+
+    for lecture in lectures_qs:
+        AttendanceRecord.objects.update_or_create(
             student=student,
             lecture=lecture,
             defaults={
@@ -92,28 +97,18 @@ def mark_attendance(request):
                 "marked_by": request.user,
             },
         )
+        marked_sessions.append(lecture.get_lecture_type_display())
 
-        if created:
-            messages.success(
-                request,
-                f"{student.roll_number} marked {status}"
-            )
-        else:
-            messages.info(
-                request,
-                f"{student.roll_number} updated to {status}"
-            )
+    session_text = " & ".join(sorted(set(marked_sessions)))
 
-        return redirect(f"{reverse('mark_attendance')}?lecture={lecture.id}")
-
-    return render(
+    messages.success(
         request,
-        "attendance/volunteer_attendance_view.html",
-        {
-            "todays_lectures": todays_lectures,
-            "selected_lecture_id": selected_lecture_id,
-        },
+        f"{student.roll_number} ({student.batch.name}) marked "
+        f"{'Present' if status == 'P' else 'Absent'} "
+        f"for {session_text} session(s)."
     )
+
+    return redirect("mark_attendance")
 
 
 @login_required

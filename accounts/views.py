@@ -160,7 +160,6 @@ def volunteer_dashboard(request):
     else:
         today_present_percent = 0
 
-    critical_defaulters = []
 
     students = Student.objects.filter(is_active=True).select_related("batch", "slot")
 
@@ -182,27 +181,6 @@ def volunteer_dashboard(request):
 
         attendance_percent = round((present_count / total_lectures) * 100, 2)
 
-        if attendance_percent < 50:  # Chanagble value 
-            critical_defaulters.append({
-                "id": student.id,
-                "roll_no": student.roll_number,
-                "full_name": student.full_name,
-                "attendance_percent": attendance_percent,
-            })
-
-    # Limit to top 5 worst defaulters
-    critical_defaulters = sorted(
-        critical_defaulters,
-        key=lambda x: x["attendance_percent"]
-    )[:5]
-
-
-    recent_audits = (
-        AuditLog.objects
-        .select_related("user")
-        .order_by("-timestamp")[:10]
-    )
-
 
     return render(
         request,
@@ -210,8 +188,6 @@ def volunteer_dashboard(request):
         {
             "total_students": total_students,
             "today_present_percent": today_present_percent,
-            "critical_defaulters": critical_defaulters,
-            "recent_audits": recent_audits,
         },
     )
 
