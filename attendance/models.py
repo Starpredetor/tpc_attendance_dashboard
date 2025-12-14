@@ -24,3 +24,10 @@ class AttendanceRecord(models.Model):
     def __str__(self):
         return f"{self.student.roll_number} - {self.lecture} : {self.status}"
 
+
+class EODAttendanceRun(models.Model):
+    run_date = models.DateField(unique=True)
+    executed_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"EOD Attendance Run - {self.run_date}"

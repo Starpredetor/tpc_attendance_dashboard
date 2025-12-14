@@ -121,7 +121,7 @@
     </tr>
 
     {% for student in page_obj %}
-    <tr onclick="window.location.href='#'"> <!--- TODO--->
+    <tr onclick="window.location.href='{% url 'student_profile' student.id %}'"style="cursor:pointer;">
         <td>{{ student.roll_number }}</td>
         <td>{{ student.full_name }}</td>
         <td>{{ student.branch }}</td>
