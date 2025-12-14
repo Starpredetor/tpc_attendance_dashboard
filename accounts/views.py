@@ -8,6 +8,9 @@ from lectures.models import Lecture
 from attendance.models import AttendanceRecord
 from auditlog.models import AuditLog
 from django.utils import timezone
+from django.contrib.auth.views import PasswordChangeView
+from django.urls import reverse_lazy
+
 
 
 today = timezone.localdate()
@@ -35,6 +38,20 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect("login")
+
+
+class CustomPasswordChangeView(PasswordChangeView):
+    template_name = "dashboards/change_password.html"
+    success_url = reverse_lazy("dashboard")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        if response:
+            messages.success(self.request, "Password changed successfully.")
+        else:
+            messages.error(self.request, "Failed to change password.")
+        return response
+
 
 
 @login_required
