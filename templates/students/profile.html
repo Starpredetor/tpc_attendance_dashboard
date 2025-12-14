@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Student Profile{% endblock %}
+
+{% block sidebar_links %}
+<li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+<li><a href="{% url 'admin_attendance_list' %}" class="active">Attendance</a></li>
+<li><a href="{% url 'manage_lectures' %}">Lectures</a></li>
+<li><a href="#">Reports</a></li>
+<li><a href="#">Notifier</a></li>
+<li><a href="#">Audit Logs</a></li>
+<li><a href="#">Change Password</a></li>
+{% endblock %}
+
+{% block content %}
+<style>
+.profile-container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.profile-header {
+    background: #ffffff;
+    border: 1px solid var(--brown);
+    border-radius: 10px;
+    padding: 20px;
+}
+
+.profile-header h1 {
+    margin: 0;
+    font-size: 26px;
+}
+
+.profile-meta {
+    margin-top: 6px;
+    font-size: 14px;
+    color: #555;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+    background: #f0e7e0;
+    margin-right: 6px;
+}
+
+.summary-cards {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.summary-card {
+    background: #ffffff;
+    border: 1px solid var(--brown);
+    border-radius: 10px;
+    padding: 16px;
+    width: 260px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.summary-card h3 {
+    margin: 0 0 6px;
+    font-size: 14px;
+    color: #555;
+}
+
+.summary-card .value {
+    font-size: 32px;
+    font-weight: bold;
+    color: var(--red);
+}
+
+.tabs {
+    display: flex;
+    gap: 10px;
+    border-bottom: 2px solid #e0d6cc;
+}
+
+.tab {
+    padding: 10px 16px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    background: #f7efe9;
+}
+
+.tab.active {
+    background: #ffffff;
+    border: 1px solid #e0d6cc;
+    border-bottom: none;
+}
+
+.tab-content {
+    display: none;
+    background: #ffffff;
+    border: 1px solid #e0d6cc;
+    border-radius: 0 10px 10px 10px;
+    padding: 20px;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.overview-layout {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.overview-left {
+    flex: 2;
+}
+
+.overview-right {
+    flex: 1;
+}
+
+.card {
+    background: #fff7f2;
+    border: 1px solid #e0d6cc;
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.card h3 {
+    margin-top: 0;
+}
+
+.lecture-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.lecture-item {
+    padding: 8px 0;
+    border-bottom: 1px solid #e0d6cc;
+    font-size: 14px;
+}
+
+.lecture-item:last-child {
+    border-bottom: none;
+}
+
+.detail-row {
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+.status-present {
+    color: #2e7d32;
+    font-weight: bold;
+}
+
+.status-absent {
+    color: #c62828;
+    font-weight: bold;
+}
+
+</style>
+
+<div class="profile-container">
+
+    <div class="profile-header">
+        <h1>{{ student.full_name }}</h1>
+        <div class="profile-meta">
+            Roll No: <strong>{{ student.roll_number }}</strong><br>
+            <span class="badge">{{ student.batch.name }}</span>
+            <span class="badge">{{ student.slot.name }}</span>
+            <span class="badge">{{ student.get_branch_display }}</span>
+        </div>
+    </div>
+
+    <div class="summary-cards">
+        <div class="summary-card">
+            <h3>Attendance %</h3>
+            <div class="value">{{ attendance_percent|default:"0" }}%</div>
+            <small>Required: 90%</small>
+        </div>
+
+        <div class="summary-card">
+            <h3>Sessions Attended</h3>
+            <div class="value">{{ attended_count|default:"0" }} / {{ total_lectures|default:"0" }}</div>
+        </div>
+
+        <div class="summary-card">
+            <h3>Last Attended</h3>
+            <div class="value" style="font-size:16px;">
+                {{ last_attended|default:"—" }}
+            </div>
+        </div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" data-tab="overview">Overview</div>
+        <div class="tab" data-tab="lectures">Lectures</div>
+        <div class="tab" data-tab="stats">Statistics</div>
+        <div class="tab" data-tab="logs">Logs</div>
+    </div>
+
+    <div class="tab-content active" id="overview">
+        <div class="overview-layout">
+
+            <div class="overview-left">
+                <div class="card">
+                    <h3>Recent Lectures Attended</h3>
+                    <ul class="lecture-list">
+                        {% for lec in recent_lectures %}
+                            <li class="lecture-item">
+                                {{ lec.lecture.date }} —
+                                {{ lec.lecture.get_lecture_type_display }} —
+                                {{ lec.lecture.title|default:"-" }}
+                            </li>
+                        {% empty %}
+                            <li class="lecture-item">No recent lectures.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="overview-right">
+                <div class="card">
+                    <h3>Student Details</h3>
+                    <div class="detail-row"><strong>Email:</strong> {{ student.email }}</div>
+                    <div class="detail-row"><strong>Contact:</strong> {{ student.contact_number }}</div>
+                    <div class="detail-row"><strong>Parent Email:</strong> {{ student.parent_email }}</div>
+                    <div class="detail-row"><strong>Parent Contact:</strong> {{ student.parent_contact_number }}</div>
+                    <div class="detail-row">
+                        <strong>Status:</strong>
+                        {{ student.is_active|yesno:"Active,Inactive" }}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <div class="tab-content" id="lectures">
+    <div class="card">
+        <h3>Lecture Attendance History</h3>
+
+        <div style="margin-bottom:12px; font-size:13px;">
+            <span class="status-present">● Present</span>
+            &nbsp;&nbsp;
+            <span class="status-absent">● Absent</span>
+        </div>
+
+        <ul class="lecture-list">
+            {% for item in lecture_attendance %}
+                <li class="lecture-item">
+                    {{ item.lecture.date }} —
+                    {{ item.lecture.get_lecture_type_display }} —
+                    {{ item.lecture.title|default:"-" }}
+                    <br>
+                    <small style="color:#555;">
+                        {{ item.lecture.batch.name }} / {{ item.lecture.slot.name }}
+                    </small>
+                    <br>
+                    <strong class="{% if item.status == 'P' %}status-present{% else %}status-absent{% endif %}">
+                        {% if item.status == 'P' %}Present{% else %}Absent{% endif %}
+                    </strong>
+                </li>
+            {% empty %}
+                <li class="lecture-item">
+                    No lectures found.
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+
+    <div class="tab-content" id="stats">
+        <div class="card">More Statistics.... (WORK IN PROGRESS)</div>
+    </div>
+    <div class="tab-content" id="logs">
+        <div class="card">Audit logs. (WORK IN PROGRESS)</div>
+    </div>
+</div>
+
+<script>
+(function () {
+    const tabs = document.querySelectorAll(".tab");
+    const contents = document.querySelectorAll(".tab-content");
+
+    tabs.forEach(tab => {
+        tab.addEventListener("click", () => {
+            tabs.forEach(t => t.classList.remove("active"));
+            contents.forEach(c => c.classList.remove("active"));
+
+            tab.classList.add("active");
+            document.getElementById(tab.dataset.tab).classList.add("active");
+        });
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Lectures{% endblock %}
+
+{% block nav_right %}
+<form action="{% url 'logout' %}" method="post" style="margin:0;">
+    {% csrf_token %}
+    <button type="submit" class="logout-btn">Logout</button>
+</form>
+{% endblock %}
+
+{% block sidebar_links %}
+{% if user.role == 'VOLUNTEER' %}
+<ul class="sidebar-links">
+    <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+    <li><a href="{% url 'mark_attendance' %}">Attendance</a></li>
+    <li><a href="#" class="active">Lectures</a></li>
+    <li><a href="#">Change Password</a></li>
+</ul>
+{% else %}
+<ul class="sidebar-links">
+    <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
+    <li><a href="{% url 'admin_attendance_list' %}">Attendance</a></li>
+    <li><a href="#" class="active">Lectures</a></li>
+    <li><a href="#">Reports</a></li>
+    <li><a href="#">Notifier</a></li>
+    <li><a href="#">Audit Logs</a></li>
+    <li><a href="#">Change Password</a></li>
+</ul>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<style>
+.page { max-width:1100px; display:flex; flex-direction:column; gap:20px; }
+
+.page-header { display:flex; justify-content:space-between; align-items:center; }
+
+.btn { padding:8px 12px; font-weight:bold; border-radius:6px; border:none; cursor:pointer; }
+.btn-primary { background:var(--red); color:var(--offwhite); }
+.btn-green { background:#e8f5e9; color:#2e7d32; border:1px solid #2e7d32; }
+.btn-red { background:#ffebee; color:#c62828; border:1px solid #c62828; }
+
+.badge { font-size:12px; padding:4px 8px; border-radius:6px; background:#f0e7e0; }
+.badge-green { background:#e8f5e9; color:#2e7d32; }
+
+.day-card { background:#fff7f2; border:1px solid #e0d6cc; border-radius:10px; padding:14px; }
+.day-header {
+    display:flex;
+    justify-content:space-between;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.day-content { display:none; margin-top:12px; }
+
+.day-card.open .day-content { display:block; }
+
+.lecture-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:12px;
+}
+
+.lecture-card {
+    background:#fff;
+    border:1px solid #e0d6cc;
+    border-radius:8px;
+    padding:12px;
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+}
+.expand-btn {
+    background: transparent;
+    border: none;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: bold;
+}
+.day-card.open .expand-btn {
+    transform: rotate(180deg);
+}
+
+
+.lecture-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+
+.modal-backdrop {
+    position:fixed; inset:0; background:rgba(0,0,0,.4);
+    display:none; align-items:center; justify-content:center; z-index:1000;
+}
+
+.modal {
+    background:#fff; border-radius:12px; padding:24px;
+    max-width:420px; width:100%;
+}
+
+.field { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+.input { padding:10px; border-radius:6px; border:1px solid #ccc; }
+
+.modal-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:16px; }
+</style>
+
+<div class="page">
+{% if messages %}
+<div style="
+                padding:12px;
+                border-radius:6px;
+                font-weight:bold;
+                background:
+                    {% if message.tags == 'success' %}#e8f5e9{% elif message.tags == 'error' %}#ffebee{% else %}#e3f2fd{% endif %};
+                color:
+                    {% if message.tags == 'success' %}#2e7d32{% elif message.tags == 'error' %}#c62828{% else %}#1565c0{% endif %};
+                border:1px solid
+                    {% if message.tags == 'success' %}#4caf50{% elif message.tags == 'error' %}#ef5350{% else %}#64b5f6{% endif %};
+            ">
+    {% for message in messages %}
+        <div class="alert {{ message.tags }}">
+            {{ message }}
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+
+    <div class="page-header">
+        <h2>Lectures</h2>
+        <button class="btn btn-primary" id="open-create-modal">Create Lecture</button>
+    </div>
+
+    {% if lectures %}
+        {% regroup lectures by date as lectures_by_date %}
+        {% for day in lectures_by_date %}
+            <div class="day-card {% if day.grouper == todays_date %}open{% endif %}">
+                <div class="day-header" onclick="toggleDay(this)">
+                    <span>
+                        {{ day.grouper }}
+                        {% if day.grouper == todays_date %}
+                            <span class="badge badge-green">Today</span>
+                        {% endif %}
+                    </span>
+                    <span>{{ day.list|length }} lecture{{ day.list|length|pluralize }} <u>[Expand]</u></span>
+                </div>
+
+                <div class="day-content">
+                    <div class="lecture-grid">
+                        {% for lec in day.list %}
+                            <div class="lecture-card">
+                                <strong>{{ lec.batch.name }} / {{ lec.get_lecture_type_display }}</strong><br>
+                                <small>{{ lec.get_lecture_type_display }} — {{ lec.title|default:"-" }}</small>
+
+                                <div class="lecture-actions">
+                                    <a href="{% url 'mark_attendance' %}" class="btn btn-green">
+                                        Mark Attendance
+                                    </a>
+                                    <button class="btn btn-primary"
+                                        onclick="openEditLectureModal('{{ lec.id }}','{{ lec.date|date:'Y-m-d' }}','{{ lec.slot.id }}','{{ lec.batch.id }}','{{ lec.lecture_type }}','{{ lec.title|default:'' }}')">
+                                        Edit
+                                    </button>
+                                    <button class="btn btn-red"
+                                        onclick="openAbsentModal('{{ lec.id }}','{{ lec.batch.name }}','{{ lec.date }}')">
+                                        Mark Absent
+                                    </button>
+                                    <button class="btn btn-red"
+                                        onclick="openDeleteLectureModal('{{ lec.id }}','{{ lec.title }}')">
+                                        Delete
+                                    </button>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No lectures scheduled.</p>
+    {% endif %}
+</div>
+
+<!-- CREATE LECTURE MODAL -->
+<div class="modal-backdrop" id="create-modal">
+    <div class="modal">
+        <h3>Create Lecture</h3>
+
+        <form method="post" action="{% url 'create_lecture' %}">
+            {% csrf_token %}
+            <div class="field">
+                <label>Date</label>
+                <input type="date" name="date" class="input" required>
+            </div>
+            <div class="field">
+                <label>Slot</label>
+                <select name="slot" class="input" required>
+                <option value="NONE" disabled selected>Select Slot</option>
+                    {% for slot in slots %}<option value="{{ slot.id }}">{{ slot.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="field">
+                <label>Batch</label>
+                <select name="batch" class="input" required>
+                <option value="NONE" disabled selected>Select Batch</option>
+                    {% for batch in batches %}<option value="{{ batch.id }}">{{ batch.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="field">
+                <label>Lecture Type</label>
+                <select name="lecture_type" class="input" required>
+                    <option value="NONE" disabled selected>Select Lecture type</option>
+                    <option value="MS">Morning</option>
+                    <option value="AS">Afternoon</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Title</label>
+                <input type="text" name="title" class="input" placeholder="Aptitude Lecture...">
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn" onclick="closeCreateModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create</button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- Mark Absent MODAL -->
+<div class="modal-backdrop" id="absent-modal">
+    <div class="modal">
+        <h3>Confirm Mark Absent</h3>
+
+        <form id="absent-form" method="post">
+            {% csrf_token %}
+        </form>
+
+        <p id="absent-text"></p>
+
+        <div class="modal-actions">
+            <button type="button" class="btn" onclick="closeAbsentModal()">Cancel</button>
+            <button type="button" class="btn btn-red"
+                onclick="document.getElementById('absent-form').submit()">
+                Confirm
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- EDIT LECTURE MODAL -->
+<div class="modal-backdrop" id="edit-lecture-modal">
+    <div class="modal">
+        <h3>Edit Lecture</h3>
+
+        <form id="edit-lecture-form" method="post">
+            {% csrf_token %}
+
+            <div class="field">
+                <label>Date</label>
+                <input type="date" name="date" id="edit-date" class="input" required>
+            </div>
+
+            <div class="field">
+                <label>Slot</label>
+                <select name="slot" id="edit-slot" class="input" required>
+                    {% for slot in slots %}
+                        <option value="{{ slot.id }}">{{ slot.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="field">
+                <label>Batch</label>
+                <select name="batch" id="edit-batch" class="input" required>
+                    {% for batch in batches %}
+                        <option value="{{ batch.id }}">{{ batch.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="field">
+                <label>Lecture Type</label>
+                <select name="lecture_type" id="edit-lecture-type" class="input" required>
+                    <option value="MS">Morning Session</option>
+                    <option value="AS">Afternoon Session</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label>Title</label>
+                <input type="text" name="title" id="edit-title" class="input">
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn" onclick="closeEditLectureModal()">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- DELETE LECTURE MODAL -->
+<div class="modal-backdrop" id="delete-lecture-modal">
+    <div class="modal">
+        <h3>Delete Lecture</h3>
+
+        <p id="delete-lecture-text"
+           style="color:#c62828;font-weight:bold;"></p>
+
+        <form id="delete-lecture-form" method="post">
+            {% csrf_token %}
+            <div class="modal-actions">
+                <button type="button" class="btn"
+                    onclick="closeDeleteLectureModal()">Cancel</button>
+                <button type="submit" class="btn btn-red">Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script>
+function toggleDay(btn) {
+    btn.closest('.day-card').classList.toggle('open');
+}
+document.getElementById("open-create-modal").onclick = () =>
+    document.getElementById("create-modal").style.display = "flex";
+
+function closeCreateModal(){ document.getElementById("create-modal").style.display = "none"; }
+
+function openAbsentModal(id,batch,date){
+    document.getElementById("absent-text").innerText =`Mark all unmarked students ABSENT for ${batch} (${date})?`;
+    document.getElementById("absent-form").action =`/attendance/mark-absent/${id}/`;
+    document.getElementById("absent-modal").style.display="flex";
+}
+function closeAbsentModal(){ document.getElementById("absent-modal").style.display = "none"; }
+
+function openDeleteLectureModal(id,title){
+    document.getElementById("delete-lecture-text").innerText =`Deleting "${title}" will permanently remove this lecture and ALL attendance records.`;
+    document.getElementById("delete-lecture-form").action =`/lectures/delete/${id}/`;
+    document.getElementById("delete-lecture-modal").style.display="flex";
+}
+function closeDeleteLectureModal(){ document.getElementById("delete-lecture-modal").style.display = "none"; }
+
+function openEditLectureModal(id, date, slotId, batchId, lectureType, title) {
+    document.getElementById("edit-date").value = date;
+    document.getElementById("edit-slot").value = slotId;
+    document.getElementById("edit-batch").value = batchId;
+    document.getElementById("edit-lecture-type").value = lectureType;
+    document.getElementById("edit-title").value = title || "";
+
+    document.getElementById("edit-lecture-form").action =
+        `/lectures/edit/${id}/`;
+
+    document.getElementById("edit-lecture-modal").style.display = "flex";
+}
+
+function closeEditLectureModal() {
+    document.getElementById("edit-lecture-modal").style.display = "none";
+}
+</script>
+
+{% endblock %}

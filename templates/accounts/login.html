@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login | CRT Attendance Portal</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        :root {
+            --red: #551110;
+            --offwhite: #fcf5ef;
+            --brown: #231c16;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--offwhite);
+            font-family: Arial, sans-serif;
+            color: var(--brown);
+
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-wrapper {
+            width: 100%;
+            max-width: 420px;
+            background-color: #ffffff;
+            padding: 32px;
+            border-radius: 8px;
+            box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+        }
+
+        .login-wrapper h2 {
+            text-align: center;
+            margin-bottom: 24px;
+            color: var(--red);
+        }
+
+        .login-wrapper label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        .login-wrapper input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 18px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .login-wrapper button {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--red);
+            color: var(--offwhite);
+            border: none;
+            border-radius: 4px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .login-wrapper button:hover {
+            opacity: 0.9;
+        }
+
+        .error-message {
+            color: #a00000;
+            text-align: center;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+
+        .footer-text {
+            margin-top: 20px;
+            font-size: 13px;
+            color: var(--brown);
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="login-wrapper">
+        <h2>CRT Attendance Portal</h2>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="error-message">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="post">
+            {% csrf_token %}
+
+            <label for="email">Email</label>
+            <input type="email" name="email" id="email" required>
+
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" required>
+
+            <button type="submit">Login</button>
+        </form>
+    </div>
+
+    <div class="footer-text">
+        © 2025 Training & Placement Cell, RAIT
+    </div>
+
+</body>
+</html>

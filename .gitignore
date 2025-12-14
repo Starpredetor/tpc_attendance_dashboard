@@ -62,16 +62,22 @@ db.sqlite3
 db.sqlite3-journal
 migrations/
 
+# SQL
+*.sql
+
 # Flask stuff:
 instance/
 .webassets-cache
 
 # Scrapy stuff:
 .scrapy
-
+*.todo
 # Sphinx documentation
 docs/_build/
 
+#IDE stuff:
+.vscode/
+.idea/
 # PyBuilder
 target/
 
