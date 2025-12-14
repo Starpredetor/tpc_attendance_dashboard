@@ -1,4 +1,4 @@
-from datetime import date
+from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, render
 from students.models import Student
@@ -9,8 +9,7 @@ from attendance.models import AttendanceRecord
 @login_required
 def student_profile(request, student_id):
     student = get_object_or_404(Student, id=student_id)
-
-    today = date.today()
+    today = timezone.localdate()
 
     lectures_qs = Lecture.objects.filter(
         batch=student.batch,
@@ -27,9 +26,10 @@ def student_profile(request, student_id):
 
     present_count = attendance_qs.filter(status="P").count()
 
-    attendance_percent = 0
-    if total_lectures > 0:
-        attendance_percent = round((present_count / total_lectures) * 100, 2)
+    attendance_percent = (
+        round((present_count / total_lectures) * 100, 2)
+        if total_lectures > 0 else 0
+    )
 
     last_attended_record = (
         attendance_qs.filter(status="P")
@@ -49,12 +49,17 @@ def student_profile(request, student_id):
         .order_by("-lecture__date")[:5]
     )
 
-    all_attended_lectures = (
-    AttendanceRecord.objects
-    .filter(student=student, status="P")
-    .select_related("lecture")
-    .order_by("-lecture__date")
-    )
+    attendance_map = {
+        rec.lecture_id: rec.status
+        for rec in attendance_qs
+    }
+
+    lecture_attendance = []
+    for lec in lectures_qs.order_by("-date"):
+        lecture_attendance.append({
+            "lecture": lec,
+            "status": attendance_map.get(lec.id, "A"),
+        })
 
     context = {
         "student": student,
@@ -63,13 +68,7 @@ def student_profile(request, student_id):
         "total_lectures": total_lectures,
         "last_attended": last_attended,
         "recent_lectures": recent_lectures,
-        "all_attended_lectures": all_attended_lectures
-
+        "lecture_attendance": lecture_attendance,
     }
 
-    return render(
-        request,
-        "students/profile.html",
-        context,
-    )
-
+    return render(request, "students/profile.html", context)

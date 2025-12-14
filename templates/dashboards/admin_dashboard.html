@@ -96,28 +96,6 @@
     </a>
 </div>
 
-<!-- TODAY'S SESSIONS -->
-<div class="section">
-    <h3>Today's Sessions</h3>
-    <table>
-        <tr>
-            <th>Title</th>
-            <th>Batch</th>
-            <th>Time</th>
-        </tr>
-        {% for session in todays_sessions %}
-        <tr>
-            <td>{{ session.title }}</td>
-            <td>{{ session.batch }}</td>
-            <td>{{ session.get_session_type_display }}</td>
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="3">No sessions today</td>
-        </tr>
-        {% endfor %}
-    </table>
-</div>
 
 <!-- CRITICAL DEFAULTERS -->
 <div class="section">
@@ -129,7 +107,7 @@
             <th>Attendance %</th>
         </tr>
         {% for student in critical_defaulters %}
-        <tr>
+        <tr onclick="window.location.href='{% url 'student_profile' student.id %}'"style="cursor:pointer;">
             <td>{{ student.roll_no }}</td>
             <td>{{ student.full_name }}</td>
             <td>{{ student.attendance_percent }}%</td>

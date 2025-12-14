@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from datetime import date
+from django.utils import timezone
 from .models import AttendanceRecord
 from lectures.models import Lecture
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -44,8 +44,7 @@ def admin_attendance_list(request):
 
 @login_required
 def mark_attendance(request):
-    today = date.today()
-
+    today = timezone.localdate()
     # Only today's lectures
     todays_lectures = Lecture.objects.filter(date=today)
 
@@ -133,7 +132,7 @@ def mark_absent(request, lecture_id):
 
     present_student_ids = AttendanceRecord.objects.filter(
         lecture=lecture,
-        status="PRESENT",
+        status="P",
     ).values_list("student_id", flat=True)
 
     students_to_mark_absent = all_students.exclude(
@@ -148,7 +147,7 @@ def mark_absent(request, lecture_id):
             student=student,
             lecture=lecture,
             defaults={
-                "status": "ABSENT",
+                "status": "A",
                 "marked_by": request.user,
             },
         )

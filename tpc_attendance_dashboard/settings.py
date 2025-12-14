@@ -58,12 +58,19 @@ INSTALLED_APPS = [
     'students',
 
 ]
+
+
+# CELERY CONFIGURATION
 CELERY_BEAT_SCHEDULE = {
     "mark-absent-daily": {
         "task": "attendance.tasks.mark_absent_for_date",
         "schedule": crontab(hour=23, minute=59),
     },
 }
+CELERY_TIMEZONE = "Asia/Kolkata"
+CELERY_ENABLE_UTC = True
+
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -144,11 +151,12 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "Asia/Kolkata"
+USE_TZ = True
+
 
 USE_I18N = True
 
-USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)

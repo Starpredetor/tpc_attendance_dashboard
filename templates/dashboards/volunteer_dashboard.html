@@ -23,87 +23,61 @@
 {# ---------------- MAIN CONTENT ---------------- #}
 {% block content %}
 <style>
-    .dashboard-container {
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
-        max-width: 900px;
-    }
-
-    .welcome-box {
-        background-color: var(--red);
-        color: var(--offwhite);
-        padding: 20px 24px;
-        border-radius: 8px;
-        font-size: 20px;
-        font-weight: bold;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    }
-
-    .cards-row {
-        display: flex;
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 20px;
-        flex-wrap: wrap;
+        margin-bottom: 30px;
     }
 
     .card {
-        background: #ffffff;
-        border: 1px solid var(--brown);
-        border-radius: 8px;
+        background-color: #ffffff;
         padding: 20px;
-        width: 260px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.12);
-    }
-
-    .card-title {
-        font-size: 15px;
-        font-weight: bold;
-        margin-bottom: 8px;
+        border-radius: 8px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        text-decoration: none;
         color: var(--brown);
+        transition: transform 0.15s ease;
     }
 
-    .card-value {
-        font-size: 32px;
-        font-weight: bold;
+    .card:hover {
+        transform: translateY(-3px);
+    }
+
+    .card h3 {
+        margin: 0 0 10px 0;
         color: var(--red);
     }
 
-    .card-subtext {
-        margin-top: 6px;
-        font-size: 14px;
-        color: #555;
+    .card p {
+        font-size: 22px;
+        font-weight: bold;
+        margin: 0;
     }
+
+    .section {
+        margin-bottom: 30px;
+    }
+
+    .section h3 {
+        margin-bottom: 12px;
+        color: var(--red);
+    }
+
 </style>
 
-<div class="dashboard-container">
+<!-- KPI CARDS -->
+<div class="dashboard-grid">
+    <a href="#" class="card">
+        <h3>Total Students</h3>
+        <p>{{ total_students|default:0 }}</p>
+    </a>
 
-    <!-- Welcome -->
-    <div class="welcome-box">
-        Volunteer Dashboard —
-        Welcome, {{ request.user.full_name|default:request.user.email }}!
-    </div>
-
-    <!-- Stats Cards -->
-    <div class="cards-row">
-
-        <div class="card">
-            <div class="card-title">Today's Attendance</div>
-            <div class="card-value">
-                {{ attendance_percent|default:0 }}%
-            </div>
-            <div class="card-subtext">Students Present</div>
-        </div>
-
-        <div class="card">
-            <div class="card-title">Today's Lectures</div>
-            <div class="card-value">
-                {{ today_lectures_count|default:0 }}
-            </div>
-            <div class="card-subtext">
-                Total Students: {{ today_students_count|default:0 }}
-            </div>
-        </div>
-
-    </div>
+    <a href="#" class="card">
+        <h3>Today Present %</h3>
+        <p>{{ today_present_percent|default:0 }}%</p>
+    </a>
 </div>
+
+
 {% endblock %}
