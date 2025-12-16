@@ -108,7 +108,7 @@ def admin_dashboard(request):
 
         attendance_percent = round((present_count / total_lectures) * 100, 2)
 
-        if attendance_percent < 50:  # Chanagble value 
+        if attendance_percent < 75:  # Chanagble value 
             critical_defaulters.append({
                 "id": student.id,
                 "roll_no": student.roll_number,

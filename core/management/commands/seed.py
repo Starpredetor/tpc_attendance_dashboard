@@ -1,8 +1,7 @@
 from django.core.management.base import BaseCommand
 from datetime import date
 from lectures.models import Batch, Slot
-from students.models import Student
-
+from students.models import Branch
 
 class Command(BaseCommand):
     help = "Seed core data: batches, slots, and dummy students"
@@ -50,6 +49,21 @@ class Command(BaseCommand):
             slots[name] = slot
 
         self.stdout.write(self.style.SUCCESS("✓ Slots created with date ranges"))
+        branches = [
+            'computer engineering',
+            'artificial intelligence and data science',
+            'artificial intelligence and machine learning',
+            'cybersecurity',
+            'information technology',
+            'computer science and business system',
+            'electronics and computer engineering',
+            'electronics and telecommunication engineering',
+            'electronics engineering',
+        ]
+        for name in branches:
+            Branch.objects.get_or_create(name=name)
+
+        self.stdout.write(self.style.SUCCESS("✓ Branches created"))
 
 
     

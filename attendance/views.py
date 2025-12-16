@@ -53,7 +53,7 @@ def mark_attendance(request):
         )
 
     roll_number = request.POST.get("roll_number")
-    if not re.match(r'^(23|24)[A-Z]{2}\d{4}$', roll_number):
+    if not re.match(r'^(22|23|24)[A-Z]{2}\d{4}$', roll_number):
         messages.error(request, "Invalid roll number format. Enter Manually.")
         return redirect("mark_attendance")
 

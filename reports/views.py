@@ -22,7 +22,7 @@ def student_attendance_report(request,):
         messages.error(request, "Roll number is required.")
         return redirect("student_report_page")
 
-    if not re.match(r'^(23|24)[A-Z]{2}\d{4}$', roll_number):
+    if not re.match(r'^(22|23|24)[A-Z]{2}\d{4}$', roll_number):
         messages.error(request, "Invalid roll number format.")
         return redirect("student_report_page")
     

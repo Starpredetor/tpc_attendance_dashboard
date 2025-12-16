@@ -84,6 +84,8 @@
 
     .pagination .active {
         background-color: var(--red);
+        border-radius: 4px;
+        padding: 6px 10px;
         color: var(--offwhite);
     }
 </style>
@@ -127,13 +129,13 @@
 <!-- PAGINATION -->
 <div class="pagination">
     {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q }}">Prev</a>
+        <a href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q }}">Prev Page</a>
     {% endif %}
 
     <span class="active">{{ page_obj.number }}</span>
 
     {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q }}">Next</a>
+        <a href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q }}">Next Page</a>
     {% endif %}
 </div>
 

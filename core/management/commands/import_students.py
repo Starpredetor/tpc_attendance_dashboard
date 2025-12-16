@@ -1,138 +1,141 @@
+import csv
+
 from django.core.management.base import BaseCommand
-from students.models import Student
+from faker import Faker
+
+from students.models import Student, Branch
 from lectures.models import Batch, Slot
-from openpyxl import load_workbook
-from django.db import transaction
+
+fake = Faker()
+
+
+
+BATCH_SLOT_MAP = {
+    "Batch 1": "Slot 1",
+    "Batch 2": "Slot 1",
+    "Batch 3": "Slot 2",
+    "Batch 4": "Slot 3",
+}
+
+REQUIRED_HEADERS = {
+    "full_name",
+    "roll_number",
+    "branch",
+    "batch",
+}
 
 
 class Command(BaseCommand):
-    help = "Import students from Excel file"
+    help = "Import students from CSV (supports dry-run)"
 
     def add_arguments(self, parser):
-        parser.add_argument("file", type=str)
+        parser.add_argument("file", type=str, help="Path to CSV file")
         parser.add_argument(
             "--dry-run",
             action="store_true",
-            help="Validate only, do not write to DB",
+            help="Validate only, no database writes",
         )
 
     def handle(self, *args, **options):
         file_path = options["file"]
         dry_run = options["dry_run"]
 
-        wb = load_workbook(file_path)
-
-        required_headers = [
-            "Full Name",
-            "Roll No.",
-            "Branch",
-            "Email",
-            "Contact",
-            "Parent Email",
-            "Parent Contact",
-        ]
-
-        created = 0
+        validated = 0
         errors = []
 
-        slot_map = {
-            "Batch 1": "Slot 1",
-            "Batch 2": "Slot 1",
-            "Batch 3": "Slot 2",
-            "Batch 4": "Slot 3",
-        }
+        with open(file_path, newline="", encoding="utf-8") as csvfile:
+            reader = csv.DictReader(csvfile)
 
-        try:
-            with transaction.atomic():
-                for sheet_name in wb.sheetnames:
-                    sheet = wb[sheet_name]
+            headers = {
+            h.replace("\ufeff", "").strip().lower()
+            for h in reader.fieldnames
+            }
+            if not REQUIRED_HEADERS.issubset(headers):
+                self.stderr.write(
+                    f"Invalid headers. Found: {reader.fieldnames}"
+                )
+                return
+            
 
-                    headers = [
-                        str(c.value).strip().replace("\n", "").replace("\xa0", " ")
-                        for c in sheet[1]
-                    ]
+            branch_lookup = {
+                b.name.strip().lower(): b
+                for b in Branch.objects.all()}
+            for row in reader:
+                roll = str(row.get("roll_number", "")).strip()
+                if not roll:
+                    continue
 
-                    if not all(h in headers for h in required_headers):
-                        errors.append(
-                            f"{sheet_name}: Invalid headers → {headers}"
-                        )
-                        continue
+                batch_name = row.get("batch", "").strip()
+                branch_raw = (
+                    row.get("branch", "")
+                    .strip()
+                    .strip('"')
+                    .strip("'")
+                    .lower()
+                )
 
-                    idx = {h: headers.index(h) for h in headers}
+                branch = branch_lookup.get(branch_raw)
 
-                    try:
-                        batch = Batch.objects.get(name=sheet_name)
-                        slot = Slot.objects.get(name=slot_map[sheet_name])
-                    except Exception:
-                        errors.append(f"{sheet_name}: Batch or Slot missing")
-                        continue
+                if not branch:
+                    errors.append(f"{roll}: Invalid branch '{branch_raw}'")
+                    continue
 
-                    for row_no, row in enumerate(sheet.iter_rows(min_row=2), start=2):
-                        roll = str(row[idx["Roll No."]].value).strip()
+                full_name = row.get("\ufefffull_name", "").strip()
 
-                        if not roll:
-                            errors.append(f"{sheet_name} Row {row_no}: Missing roll number")
-                            continue
+                
+                batch = Batch.objects.filter(name=batch_name).first()
+                if not batch:
+                    errors.append(f"{roll}: Invalid batch '{batch_name}'")
+                    continue
 
-                        if Student.objects.filter(roll_number=roll).exists():
-                            errors.append(
-                                f"{sheet_name} Row {row_no}: Duplicate roll {roll}"
-                            )
-                            continue
+                slot_name = BATCH_SLOT_MAP.get(batch_name)
+                if not slot_name:
+                    errors.append(f"{roll}: No slot mapping for '{batch_name}'")
+                    continue
 
-                        Student(
-                            full_name=row[idx["Full Name"]].value,
-                            roll_number=roll,
-                            branch=row[idx["Branch"]].value,
-                            email=row[idx["Email"]].value,
-                            contact_number=str(row[idx["Contact"]].value),
-                            parent_email=row[idx["Parent Email"]].value,
-                            parent_contact_number=str(
-                                row[idx["Parent Contact"]].value
-                            ),
-                            batch=batch,
-                            slot=slot,
-                        ).full_clean()
+                slot = Slot.objects.filter(name=slot_name).first()
+                if not slot:
+                    errors.append(f"{roll}: Slot not found '{slot_name}'")
+                    continue
 
-                        if not dry_run:
-                            Student.objects.create(
-                                full_name=row[idx["Full Name"]].value,
-                                roll_number=roll,
-                                branch=row[idx["Branch"]].value,
-                                email=row[idx["Email"]].value,
-                                contact_number=str(row[idx["Contact"]].value),
-                                parent_email=row[idx["Parent Email"]].value,
-                                parent_contact_number=str(
-                                    row[idx["Parent Contact"]].value
-                                ),
-                                batch=batch,
-                                slot=slot,
-                            )
+                """branch = BRANCH_MAP.get(branch_raw)
+                if not branch:
+                    errors.append(f"{roll}: Invalid branch '{branch_raw}'")
+                    continue"""
 
-                        created += 1
-
-                if errors:
-                    raise Exception("Validation failed")
-
+                validated += 1
+                if roll in Student.objects.values_list("roll_number", flat=True):
+                    errors.append(f"{roll}: Duplicate roll number")
+                    continue
                 if dry_run:
-                    raise transaction.TransactionManagementError("Dry run rollback")
+                    print(f"DRY RUN: {full_name} ({roll}) - {batch.name}, {slot.name}, {branch.name}")
+                    continue
+                try:    
+                    Student.objects.create(
+                        full_name=full_name,
+                        roll_number=roll,
+                        branch=branch,
+                        batch=batch,
+                        slot=slot,
+                        email=fake.email(),
+                        contact_number=fake.msisdn(),
+                        parent_email=fake.email(),
+                        parent_contact_number=fake.msisdn(),
+                        is_active=True,
+                    )
+                except Exception as e:
+                    errors.append(f"{roll}: Error creating student - {e}")
+                    continue
 
-        except Exception:
-            pass
+        
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"{'DRY RUN OK' if dry_run else 'IMPORT COMPLETE'} → "
+                f"{validated} students validated"
+            )
+        )
 
         if errors:
-            self.stderr.write(self.style.ERROR("IMPORT FAILED"))
+            self.stdout.write(self.style.WARNING("\nWARNINGS:"))
             for e in errors:
-                self.stderr.write(f" - {e}")
-            return
-
-        if dry_run:
-            self.stdout.write(
-                self.style.WARNING(
-                    f"DRY RUN OK → {created} students validated (no DB writes)"
-                )
-            )
-        else:
-            self.stdout.write(
-                self.style.SUCCESS(f"IMPORT SUCCESS → {created} students added")
-            )
+                self.stdout.write(f"- {e}")
