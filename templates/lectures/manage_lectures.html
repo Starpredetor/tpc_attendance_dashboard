@@ -9,26 +9,6 @@
 </form>
 {% endblock %}
 
-{% block sidebar_links %}
-{% if user.role == 'VOLUNTEER' %}
-<ul class="sidebar-links">
-    <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
-    <li><a href="{% url 'mark_attendance' %}">Attendance</a></li>
-    <li><a href="#" class="active">Lectures</a></li>
-    <li><a href="#">Change Password</a></li>
-</ul>
-{% else %}
-<ul class="sidebar-links">
-    <li><a href="{% url 'dashboard' %}">Dashboard</a></li>
-    <li><a href="{% url 'admin_attendance_list' %}">Attendance</a></li>
-    <li><a href="#" class="active">Lectures</a></li>
-    <li><a href="#">Reports</a></li>
-    <li><a href="#">Notifier</a></li>
-    <li><a href="#">Audit Logs</a></li>
-    <li><a href="#">Change Password</a></li>
-</ul>
-{% endif %}
-{% endblock %}
 
 {% block content %}
 <style>

@@ -193,7 +193,25 @@
 
         <ul class="sidebar-links">
           {% block sidebar_links %}
-          <!-- links go here -->
+          {% load nav_active %}
+          {% if user.role == 'VOLUNTEER' %}
+            <ul class="sidebar-links">
+              <li><a href="{% url 'volunteer_dashboard' %}" class="{% nav_active request 'volunteer_dashboard' %}">Dashboard</a></li>
+              <li><a href="{% url 'mark_attendance' %}" class="{% nav_active request 'mark_attendance' %}">Attendance</a></li>
+              <li><a href="{% url 'manage_lectures' %}" class="{% nav_active request 'manage_lectures' %}">Lectures</a></li>
+              <li><a href="{% url 'password_change' %}" class="{% nav_active request 'password_change' %}">Change Password</a></li>
+            </ul>
+            {% else %}
+            <ul class="sidebar-links">
+                <li><a href="{% url 'admin_dashboard' %}" class="{% nav_active request 'admin_dashboard' %}">Dashboard</a></li>
+                <li><a href="{% url 'admin_attendance_list' %}" class="{% nav_active request 'admin_attendance_list' %}">Attendance</a></li>
+                <li><a href="{% url 'manage_lectures' %}" class="{% nav_active request 'manage_lectures' %}">Lectures</a></li>
+                <li><a href="{% url 'report' %}" class="{% nav_active request 'report' %}">Reports</a></li>
+                <li><a href="#">Notifier</a></li>
+                <li><a href="#">Audit Logs</a></li>
+                <li><a href="{% url 'password_change' %}" class="{% nav_active request 'password_change' %}">Change Password</a></li>
+            </ul>
+            {% endif %}
           {% endblock %}
         </ul>
       </aside>

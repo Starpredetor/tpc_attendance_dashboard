@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'auditlog',
     'core',
     'lectures',
+    'reports',
     'students',
 
 ]
