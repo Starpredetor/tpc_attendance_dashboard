@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<style>
+.page {
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.card {
+    background: #ffffff;
+    border: 1px solid var(--brown);
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.card h3 {
+    margin-top: 0;
+}
+
+.card p {
+    color: #555;
+    margin-bottom: 16px;
+}
+
+.actions {
+    display: flex;
+    gap: 16px;
+}
+
+.btn {
+    padding: 12px 18px;
+    border-radius: 6px;
+    font-weight: bold;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background: var(--red);
+    color: var(--offwhite);
+}
+</style>
+
+<div class="page">
+    <h2>Reports</h2>
+
+    <div class="card">
+        <h3>Generate Reports</h3>
+        <p>Select the type of report you want to generate.</p>
+
+        <div class="actions">
+            <a href="{% url 'student_report_page' %}" class="btn btn-primary">
+                Student Attendance Report
+            </a>
+
+            <a href="{% url 'lecture_report_page' %}" class="btn btn-primary">
+                Lecture Attendance Report
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

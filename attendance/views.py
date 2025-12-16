@@ -82,7 +82,7 @@ def mark_attendance(request):
     if not lectures_qs.exists():
         messages.error(
             request,
-            "No matching lectures found for this student today."
+            "No matching lectures found for this student today. Create lectures if not already created."
         )
         return redirect("mark_attendance")
 

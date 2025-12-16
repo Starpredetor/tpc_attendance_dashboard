@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Lecture Attendance Report{% endblock %}
+
+{% block content %}
+<style>
+.page {
+    max-width: 900px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.card {
+    background: #ffffff;
+    border: 1px solid var(--brown);
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.card-header {
+    margin-bottom: 20px;
+}
+
+.card-header h2 {
+    margin: 0;
+}
+
+.card-header p {
+    margin: 6px 0 0;
+    color: #555;
+    font-size: 14px;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 18px;
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.field label {
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.input {
+    padding: 10px 12px;
+    border-radius: 6px;
+    border: 1px solid var(--brown);
+    font-size: 15px;
+}
+
+.date-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 24px;
+}
+
+.btn-primary {
+    background: var(--red);
+    color: var(--offwhite);
+    border: none;
+    padding: 12px 18px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.batch-grid {
+    display: grid;
+    grid-template-columns: repeat(minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.batch-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid #e0d6cc;
+    border-radius: 6px;
+    background: #fff7f2;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.batch-item input[type="checkbox"] {
+    transform: scale(1.1);
+}
+
+.batch-item:hover {
+    background: #f3ebe4;
+}
+
+</style>
+
+<div class="page">
+
+    <div class="card">
+    {% if messages %}
+    <div style="display:flex; flex-direction:column; gap:10px;">
+        {% for message in messages %}
+            <div style="
+                padding:12px;
+                border-radius:6px;
+                font-weight:bold;
+                background:
+                    {% if message.tags == 'success' %}#e8f5e9{% else %}#ffebee{% endif %};
+                color:
+                    {% if message.tags == 'success' %}#2e7d32{% else %}#c62828{% endif %};
+                border:1px solid
+                    {% if message.tags == 'success' %}#4caf50{% else %}#ef5350{% endif %};
+            ">
+                {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+        <div class="card-header">
+            <h2>Lecture Attendance Report</h2>
+            <p>
+                Generate attendance data batch-wise for a selected date range.
+            </p>
+        </div>
+
+        <form method="post" action="{% url 'lecture_attendance_report' %}">
+            {% csrf_token %}
+
+            <div class="form-grid">
+
+                <!-- Batch Selection -->
+                <div class="field">
+    <label>Batches</label>
+
+    <div class="batch-grid">
+        {% for batch in batches %}
+            <label class="batch-item">
+                <input
+                    type="checkbox"
+                    name="batches"
+                    value="{{ batch.id }}"
+                    required
+                >
+                {{ batch.name }}
+            </label>
+                {% endfor %}
+                    </div>
+
+                    <small style="color:#555;">
+                        Select one or more batches
+                    </small>
+                </div>
+
+
+                <!-- Date Range -->
+                <div class="field">
+                    <label>Date Range</label>
+                    <div class="date-row">
+                        <input
+                            type="date"
+                            name="start_date"
+                            class="input"
+                            required
+                        >
+                        <input
+                            type="date"
+                            name="end_date"
+                            class="input"
+                            required
+                        >
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="actions">
+                <button type="submit" class="btn-primary">
+                    Generate Excel Report
+                </button>
+            </div>
+
+        </form>
+    </div>
+
+</div>
+{% endblock %}
