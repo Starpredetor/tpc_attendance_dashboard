@@ -150,7 +150,7 @@ def generate_lecture_attendance_matrix_excel(batches, start_date, end_date):
             ws.append([
                 student.roll_number,
                 student.full_name,
-                student.get_branch_display(),
+                student.branch.name,
                 student.slot.name,
                 "",
             ])
