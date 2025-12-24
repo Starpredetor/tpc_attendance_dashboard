@@ -64,6 +64,7 @@ migrations/
 
 # SQL
 *.sql
+*.json
 
 # Flask stuff:
 instance/

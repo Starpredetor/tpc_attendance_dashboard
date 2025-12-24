@@ -8,6 +8,7 @@ from students.models import Student
 from django.core.paginator import Paginator
 from django.urls import reverse
 import re
+from auditlog.utils import create_audit_log
 
 
 
@@ -107,6 +108,13 @@ def mark_attendance(request):
         f"{'Present' if status == 'P' else 'Absent'} "
         f"for {session_text} session(s)."
     )
+    create_audit_log(
+    request=request,
+    action_type="ATTENDANCE",
+    description=f"Marked {status} for {student.roll_number} ({lecture.date})",
+    target=lecture,
+    )
+
 
     return redirect("mark_attendance")
 
@@ -155,6 +163,12 @@ def mark_absent(request, lecture_id):
         request,
         f"Marked ABSENT for {created_count + updated_count} students "
         f"(Lecture: {lecture.date}, {lecture.batch.name})"
+    )
+    create_audit_log(
+    request=request,
+    action_type="ATTENDANCE",
+    description=f"EOD absent marking for {lecture.batch.name} on {lecture.date}",
+    target=lecture,
     )
 
     return redirect("manage_lectures")

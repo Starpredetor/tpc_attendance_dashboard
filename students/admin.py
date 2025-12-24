@@ -8,17 +8,16 @@ class StudentAdmin(admin.ModelAdmin):
         "full_name",
         "branch",
         "batch",
-        "slot",
         "email",
         "is_active",
     )
-    list_filter = ("branch", "batch", "slot", "is_active")
+    list_filter = ("branch", "batch", "is_active")
     search_fields = ("roll_number", "full_name", "email")
     ordering = ("roll_number",)
 
     fieldsets = (
         ("Student Info", {
-            "fields": ("roll_number", "full_name", "branch", "batch", "slot")
+            "fields": ("roll_number", "full_name", "branch", "batch")
         }),
         ("Contact Info", {
             "fields": ("email", "contact_number")

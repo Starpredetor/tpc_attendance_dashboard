@@ -13,7 +13,6 @@ def student_profile(request, student_id):
 
     lectures_qs = Lecture.objects.filter(
         batch=student.batch,
-        slot=student.slot,
         date__lte=today,
     )
 

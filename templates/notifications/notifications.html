@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<style>
+.page {
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.card {
+    background: #ffffff;
+    border: 1px solid var(--brown);
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+}
+
+.btn {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-primary {
+    background: var(--red);
+    color: var(--offwhite);
+}
+
+.btn-disabled {
+    background: #eee;
+    color: #777;
+    cursor: not-allowed;
+}
+
+.badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.badge-green {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.badge-red {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.lecture-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    padding: 10px 0;
+}
+
+.lecture-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+</style>
+
+<div class="page">
+
+    <h2>Send Absence Notifications</h2>
+
+    <div class="card">
+        <form method="get">
+            <label>Select Date</label><br>
+            <input type="date" name="date" value="{{ selected_date }}">
+            <button class="btn btn-primary" type="submit">Load Lectures</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h3>Lectures on {{ selected_date }}</h3>
+
+        {% if lectures %}
+            {% for lecture in lectures %}
+                <div class="lecture-row">
+                    <div class="lecture-info">
+                        <strong>
+                            {{ lecture.batch.name }} —
+                            {{ lecture.get_lecture_type_display }}
+                        </strong>
+                        <small>{{ lecture.title|default:"-" }}</small>
+                    </div>
+
+                    {% if lecture.notification_sent %}
+                        <span class="badge badge-green">Notification Sent</span>
+                    {% else %}
+                        <button class="btn btn-primary">
+                            Send Notification
+                        </button>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No lectures scheduled for this date.</p>
+        {% endif %}
+    </div>
+
+    {% if already_sent %}
+        <div class="card">
+            <span class="badge badge-red">
+                Notifications have already been sent for one or more lectures on this day.
+            </span>
+        </div>
+    {% endif %}
+
+</div>
+{% endblock %}

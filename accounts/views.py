@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from datetime import date
+from auditlog.utils import create_audit_log
 from students.models import Student
 from lectures.models import Lecture
 from attendance.models import AttendanceRecord
@@ -10,6 +11,7 @@ from auditlog.models import AuditLog
 from django.utils import timezone
 from django.contrib.auth.views import PasswordChangeView
 from django.urls import reverse_lazy
+from auditlog.utils import create_audit_log
 
 
 
@@ -26,8 +28,21 @@ def login_view(request):
             login(request, user)
 
             if user.role == "ADMIN":
+                create_audit_log(
+                    request=request,
+                    actor=user,
+                    action_type="LOGIN",
+                    description="User logged in",
+                )
+
                 return redirect("admin_dashboard")
             elif user.role == "VOLUNTEER":
+                create_audit_log(
+                    request=request,
+                    actor=user,
+                    action_type="LOGIN",
+                    description="User logged in",
+                )
                 return redirect("volunteer_dashboard")
 
         messages.error(request, "Invalid credentials")
@@ -36,6 +51,11 @@ def login_view(request):
 
 
 def logout_view(request):
+    create_audit_log(
+    request=request,
+    action_type="LOGOUT",
+    description="User logged out",
+    )
     logout(request)
     return redirect("login")
 
@@ -68,7 +88,6 @@ def admin_dashboard(request):
     for lecture in todays_lectures:
         students_qs = Student.objects.filter(
             batch=lecture.batch,
-            slot=lecture.slot,
             is_active=True,
         )
 
@@ -88,12 +107,11 @@ def admin_dashboard(request):
 
     critical_defaulters = []
 
-    students = Student.objects.filter(is_active=True).select_related("batch", "slot")
+    students = Student.objects.filter(is_active=True).select_related("batch")
 
     for student in students:
         total_lectures = Lecture.objects.filter(
             batch=student.batch,
-            slot=student.slot,
             date__lte=today,
         ).count()
 
@@ -125,7 +143,7 @@ def admin_dashboard(request):
 
     recent_audits = (
         AuditLog.objects
-        .select_related("user")
+        .select_related("actor")
         .order_by("-timestamp")[:10]
     )
 
@@ -159,7 +177,6 @@ def volunteer_dashboard(request):
     for lecture in todays_lectures:
         students_qs = Student.objects.filter(
             batch=lecture.batch,
-            slot=lecture.slot,
             is_active=True,
         )
 
@@ -178,12 +195,11 @@ def volunteer_dashboard(request):
         today_present_percent = 0
 
 
-    students = Student.objects.filter(is_active=True).select_related("batch", "slot")
+    students = Student.objects.filter(is_active=True).select_related("batch")
 
     for student in students:
         total_lectures = Lecture.objects.filter(
             batch=student.batch,
-            slot=student.slot,
             date__lte=today,
         ).count()
 

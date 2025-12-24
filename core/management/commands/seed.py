@@ -1,71 +1,44 @@
 from django.core.management.base import BaseCommand
-from datetime import date
-from lectures.models import Batch, Slot
+from lectures.models import Batch
 from students.models import Branch
 
+
 class Command(BaseCommand):
-    help = "Seed core data: batches, slots, and dummy students"
+    help = "Seed core data: slots, batches, and branches"
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.WARNING("Seeding core data..."))
 
-        batches = {
-            "Batch 1": None,
-            "Batch 2": None,
-            "Batch 3": None,
-            "Batch 4": None,
-        }
 
-        for name in batches.keys():
-            batch, _ = Batch.objects.get_or_create(name=name)
-            batches[name] = batch
+        batches = [
+            "Batch 1",
+            "Batch 2",
+            "Batch 3",
+            "Batch 4",
+        ]
+
+        for batch_name in batches:
+            Batch.objects.get_or_create(
+                name=batch_name,
+            )
 
         self.stdout.write(self.style.SUCCESS("✓ Batches created"))
 
-        slots_data = {
-            "Slot 1": [
-                {"start": "2025-12-15", "end": "2025-12-24"},
-                {"start": "2026-01-02", "end": "2026-01-17"},
-            ],
-            "Slot 2": [
-                {"start": "2025-12-15", "end": "2025-12-25"},
-                {"start": "2026-01-08", "end": "2026-01-17"},
-            ],
-            "Slot 3": [
-                {"start": "2025-12-15", "end": "2025-12-27"},
-                {"start": "2026-01-12", "end": "2026-01-17"},
-            ],
-        }
-
-        slots = {}
-        for name, ranges in slots_data.items():
-            slot, created = Slot.objects.get_or_create(
-                name=name,
-                defaults={"date_ranges": ranges},
-            )
-            if not created:
-                slot.date_ranges = ranges
-                slot.save()
-            slots[name] = slot
-
-        self.stdout.write(self.style.SUCCESS("✓ Slots created with date ranges"))
         branches = [
-            'computer engineering',
-            'artificial intelligence and data science',
-            'artificial intelligence and machine learning',
-            'cybersecurity',
-            'information technology',
-            'computer science and business system',
-            'electronics and computer engineering',
-            'electronics and telecommunication engineering',
-            'electronics engineering',
+            "Computer Engineering",
+            "Artificial Intelligence and Data Science",
+            "Artificial Intelligence and Machine Learning",
+            "Cybersecurity",
+            "Information Technology",
+            "Computer Science and Business System",
+            "Electronics and Computer Engineering",
+            "Electronics and Telecommunication Engineering",
+            "Electronics Engineering",
         ]
+
         for name in branches:
             Branch.objects.get_or_create(name=name)
 
         self.stdout.write(self.style.SUCCESS("✓ Branches created"))
-
-
-    
 
         self.stdout.write(self.style.SUCCESS("Core data seeding completed"))
