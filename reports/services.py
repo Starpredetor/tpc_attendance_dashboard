@@ -30,7 +30,6 @@ def generate_student_attendance_excel(student):
         "Lecture Date",
         "Session",
         "Batch",
-        "Slot",
         "Lecture Title",
         "Status",
         "Marked At",
@@ -42,7 +41,7 @@ def generate_student_attendance_excel(student):
     records = (
         AttendanceRecord.objects
         .filter(student=student)
-        .select_related("lecture", "lecture__batch", "lecture__slot")
+        .select_related("lecture", "lecture__batch",)
         .order_by("lecture__date", "lecture__lecture_type")
     )
 
@@ -54,7 +53,6 @@ def generate_student_attendance_excel(student):
             lecture.date,
             session_name,
             lecture.batch.name,
-            lecture.slot.name,
             lecture.title or "-",
             "Present" if record.status == "P" else "Absent",
             make_naive(record.marked_at,),
@@ -115,7 +113,6 @@ def generate_lecture_attendance_matrix_excel(batches, start_date, end_date):
             "Roll No",
             "Name",
             "Branch",
-            "Slot",
             "Attendance %",
         ]
 
@@ -150,8 +147,7 @@ def generate_lecture_attendance_matrix_excel(batches, start_date, end_date):
             ws.append([
                 student.roll_number,
                 student.full_name,
-                student.get_branch_display(),
-                student.slot.name,
+                student.branch.name,
                 "",
             ])
 

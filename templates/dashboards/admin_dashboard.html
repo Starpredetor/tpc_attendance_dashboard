@@ -121,8 +121,8 @@
         </tr>
         {% for log in recent_audits %}
         <tr>
-            <td>{{ log.user }}</td>
-            <td>{{ log.action }}</td>
+            <td>{{ log.actor }}</td>
+            <td>{{ log.get_action_type_display }}</td>
             <td>{{ log.timestamp }}</td>
         </tr>
         {% empty %}

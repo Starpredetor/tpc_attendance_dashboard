@@ -31,7 +31,7 @@ load_dotenv()
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["0.0.0.0", "localhost", "127.0.0.1"]
+ALLOWED_HOSTS = ["0.0.0.0", "localhost", "127.0.0.1", "10.75.165.240"]
 
 
 #ADMIN SITE QOL
@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'auditlog',
     'core',
     'lectures',
+    'notifications',
     'reports',
     'students',
 
@@ -111,6 +112,18 @@ LOGOUT_REDIRECT_URL = "/login/"
 AUTHENTICATION_BACKENDS = [
     "django.contrib.auth.backends.ModelBackend",
 ]
+
+
+#Email config
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+EMAIL_HOST_USER = "yourgmail@gmail.com"
+EMAIL_HOST_PASSWORD = "APP_PASSWORD_FROM_GOOGLE"
+
+DEFAULT_FROM_EMAIL = "Training & Placement Cell <yourgmail@gmail.com>"
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases

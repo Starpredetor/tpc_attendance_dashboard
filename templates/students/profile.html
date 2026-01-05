@@ -163,8 +163,7 @@
         <div class="profile-meta">
             Roll No: <strong>{{ student.roll_number }}</strong><br>
             <span class="badge">{{ student.batch.name }}</span>
-            <span class="badge">{{ student.slot.name }}</span>
-            <span class="badge">{{ student.get_branch_display }}</span>
+            <span class="badge">{{ student.branch.name }}</span>
         </div>
     </div>
 
@@ -251,7 +250,7 @@
                     {{ item.lecture.title|default:"-" }}
                     <br>
                     <small style="color:#555;">
-                        {{ item.lecture.batch.name }} / {{ item.lecture.slot.name }}
+                        {{ item.lecture.batch.name }}
                     </small>
                     <br>
                     <strong class="{% if item.status == 'P' %}status-present{% else %}status-absent{% endif %}">

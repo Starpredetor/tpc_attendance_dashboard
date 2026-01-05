@@ -8,6 +8,7 @@ from students.models import Student
 from django.core.paginator import Paginator
 from django.urls import reverse
 import re
+from auditlog.utils import create_audit_log
 
 
 
@@ -45,23 +46,20 @@ def admin_attendance_list(request):
 @login_required
 def mark_attendance(request):
     today = timezone.localdate()
-    
+
     if request.method == "GET":
-        return render(
-            request,
-            "attendance/volunteer_attendance_view.html",
-        )
+        return render(request, "attendance/volunteer_attendance_view.html")
 
     roll_number = request.POST.get("roll_number")
-    if not re.match(r'^(23|24)[A-Z]{2}\d{4}$', roll_number):
-        messages.error(request, "Invalid roll number format. Enter Manually.")
-        return redirect("mark_attendance")
-
     status = request.POST.get("status")
     session_part = request.POST.get("session_part", "BOTH")
 
     if not roll_number or not status:
         messages.error(request, "Roll number and status are required.")
+        return redirect("mark_attendance")
+
+    if not re.match(r'^(22|23|24)[A-Z]{2}\d{4}$', roll_number):
+        messages.error(request, "Invalid roll number format. Enter manually.")
         return redirect("mark_attendance")
 
     try:
@@ -70,45 +68,61 @@ def mark_attendance(request):
         messages.error(request, "Invalid roll number. Student not found.")
         return redirect("mark_attendance")
 
-    lectures_qs = Lecture.objects.filter(
-        date=today,
-        batch=student.batch,
-        slot=student.slot,
-    )
+    lectures_today = Lecture.objects.filter(date=today, batch=student.batch)
 
-    if session_part != "BOTH":
-        lectures_qs = lectures_qs.filter(lecture_type=session_part)
-
-    if not lectures_qs.exists():
-        messages.error(
-            request,
-            "No matching lectures found for this student today. Create lectures if not already created."
-        )
+    if not lectures_today.exists():
+        messages.error(request, "No lectures exist for this student today.")
         return redirect("mark_attendance")
 
-    marked_sessions = []
+    if session_part == "BOTH":
+        for lecture in lectures_today:
+            AttendanceRecord.objects.update_or_create(
+                student=student,
+                lecture=lecture,
+                defaults={"status": "P", "marked_by": request.user},
+            )
+        messages.success(request, f"{student.roll_number} marked Present for BOTH Morning and Afternoon sessions.")
+        return redirect("mark_attendance")
 
-    for lecture in lectures_qs:
-        AttendanceRecord.objects.update_or_create(
-            student=student,
-            lecture=lecture,
-            defaults={
-                "status": status,
-                "marked_by": request.user,
-            },
-        )
-        marked_sessions.append(lecture.get_lecture_type_display())
+    if session_part == "MS":
+        ms = lectures_today.filter(lecture_type="MS").first()
+        as_ = lectures_today.filter(lecture_type="AS").first()
 
-    session_text = " & ".join(sorted(set(marked_sessions)))
+        if ms:
+            AttendanceRecord.objects.update_or_create(
+                student=student,
+                lecture=ms,
+                defaults={"status": "P", "marked_by": request.user},
+            )
+        if as_:
+            AttendanceRecord.objects.update_or_create(
+                student=student,
+                lecture=as_,
+                defaults={"status": "A", "marked_by": request.user},
+            )
 
-    messages.success(
-        request,
-        f"{student.roll_number} ({student.batch.name}) marked "
-        f"{'Present' if status == 'P' else 'Absent'} "
-        f"for {session_text} session(s)."
-    )
+        messages.success(request, f"{student.roll_number} marked: Morning (Present), Afternoon (Absent)")
+        return redirect("mark_attendance")
 
-    return redirect("mark_attendance")
+    if session_part == "AS":
+        ms = lectures_today.filter(lecture_type="MS").first()
+        as_ = lectures_today.filter(lecture_type="AS").first()
+
+        if as_:
+            AttendanceRecord.objects.update_or_create(
+                student=student,
+                lecture=as_,
+                defaults={"status": "P", "marked_by": request.user},
+            )
+        if ms:
+            AttendanceRecord.objects.update_or_create(
+                student=student,
+                lecture=ms,
+                defaults={"status": "A", "marked_by": request.user},
+            )
+
+        messages.success(request, f"{student.roll_number} marked: Morning (Absent), Afternoon (Present)")
+        return redirect("mark_attendance")
 
 
 @login_required
@@ -121,7 +135,6 @@ def mark_absent(request, lecture_id):
 
     all_students = Student.objects.filter(
         batch=lecture.batch,
-        slot=lecture.slot,
         is_active=True,
     )
 
@@ -155,6 +168,12 @@ def mark_absent(request, lecture_id):
         request,
         f"Marked ABSENT for {created_count + updated_count} students "
         f"(Lecture: {lecture.date}, {lecture.batch.name})"
+    )
+    create_audit_log(
+    request=request,
+    action_type="ATTENDANCE",
+    description=f"EOD absent marking for {lecture.batch.name} on {lecture.date}",
+    target=lecture,
     )
 
     return redirect("manage_lectures")

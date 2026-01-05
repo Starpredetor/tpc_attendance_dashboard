@@ -5,7 +5,6 @@ from .services import generate_student_attendance_excel
 from .services import generate_lecture_attendance_matrix_excel
 from django.shortcuts import render, redirect
 from lectures.models import Batch
-from lectures.models import Slot
 from django.http import HttpRequest
 import re
 from django.contrib import messages
@@ -22,7 +21,7 @@ def student_attendance_report(request,):
         messages.error(request, "Roll number is required.")
         return redirect("student_report_page")
 
-    if not re.match(r'^(23|24)[A-Z]{2}\d{4}$', roll_number):
+    if not re.match(r'^(22|23|24)[A-Z]{2}\d{4}$', roll_number):
         messages.error(request, "Invalid roll number format.")
         return redirect("student_report_page")
     
@@ -39,10 +38,8 @@ def lecture_attendance_report(request: HttpRequest):
         batch_ids = request.POST.getlist("batches")
         start_date = request.POST.get("start_date")
         end_date = request.POST.get("end_date")
-        slot_id = request.POST.get("slot")
 
         batches = Batch.objects.filter(id__in=batch_ids)
-        slot = Slot.objects.get(id=slot_id) if slot_id else None
 
         return generate_lecture_attendance_matrix_excel(
             batches=batches,
@@ -69,6 +66,5 @@ def lecture_report_page(request):
         "reports/lecture_report.html",
         {
             "batches": Batch.objects.all(),
-            "slots": Slot.objects.all(),
         },
     )

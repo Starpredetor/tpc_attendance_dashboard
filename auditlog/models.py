@@ -1,33 +1,37 @@
+from django.conf import settings
 from django.db import models
-from accounts.models import User
 
 class AuditLog(models.Model):
     ACTION_CHOICES = [
         ("CREATE", "Create"),
         ("UPDATE", "Update"),
         ("DELETE", "Delete"),
-        ("OVERRIDE", "Override"),
+        ("ATTENDANCE", "Attendance"),
         ("LOGIN", "Login"),
+        ("LOGOUT", "Logout"),
+        ("SYSTEM", "System"),
     ]
 
-    user = models.ForeignKey(
-        User,
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        related_name="audit_logs",
     )
 
-    action = models.CharField(
-        max_length=10,
-        choices=ACTION_CHOICES,
-    )
+    action_type = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    description = models.TextField()
 
-    model_name = models.CharField(max_length=100)
-    object_id = models.CharField(max_length=50)
+    target_type = models.CharField(max_length=100, blank=True, null=True)
+    target_id = models.PositiveIntegerField(blank=True, null=True)
 
-    message = models.TextField(blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
 
     timestamp = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        ordering = ["-timestamp"]
+
     def __str__(self):
-        return f"{self.action} - {self.model_name} - {self.object_id}"
+        return f"{self.action_type} by {self.actor} @ {self.timestamp}"

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Audit Logs{% endblock %}
+
+{% block content %}
+<style>
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.table th, .table td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    font-size: 14px;
+}
+.table th {
+    background: #f5efe9;
+    text-align: left;
+}
+.filter-bar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+.input {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+</style>
+
+<h2>Audit Logs</h2>
+
+<form method="get" class="filter-bar">
+    <input class="input" type="text" name="q" placeholder="Search…" value="{{ request.GET.q }}">
+
+    <select class="input" name="action">
+        <option value="">All Actions</option>
+        {% for key,label in actions %}
+            <option value="{{ key }}" {% if request.GET.action == key %}selected{% endif %}>
+                {{ label }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <select class="input" name="user">
+        <option value="">All Users</option>
+        {% for u in users %}
+            <option value="{{ u.id }}" {% if request.GET.user == u.id|stringformat:"s" %}selected{% endif %}>
+                {{ u.email }}
+            </option>
+        {% endfor %}
+    </select>
+
+    <input class="input" type="date" name="start_date" value="{{ request.GET.start_date }}">
+    <input class="input" type="date" name="end_date" value="{{ request.GET.end_date }}">
+
+    <button class="btn btn-primary">Filter</button>
+</form>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Time</th>
+            <th>User</th>
+            <th>Action</th>
+            <th>Description</th>
+            <th>Target</th>
+            <th>IP</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in logs %}
+        <tr>
+            <td>{{ log.timestamp|date:"Y-m-d H:i" }}</td>
+            <td>{{ log.actor.email|default:"System" }}</td>
+            <td>{{ log.get_action_type_display }}</td>
+            <td>{{ log.description }}</td>
+            <td>
+                {% if log.target_type %}
+                    {{ log.target_type }} ({{ log.target_id }})
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+            <td>{{ log.ip_address|default:"—" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6">No audit logs found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

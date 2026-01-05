@@ -132,7 +132,7 @@
                                         Mark Attendance
                                     </a>
                                     <button class="btn btn-primary"
-                                        onclick="openEditLectureModal('{{ lec.id }}','{{ lec.date|date:'Y-m-d' }}','{{ lec.slot.id }}','{{ lec.batch.id }}','{{ lec.lecture_type }}','{{ lec.title|default:'' }}')">
+                                        onclick="openEditLectureModal('{{ lec.id }}','{{ lec.date|date:'Y-m-d' }}','{{ lec.batch.id }}','{{ lec.lecture_type }}','{{ lec.title|default:'' }}')">
                                         Edit
                                     </button>
                                     <button class="btn btn-red"
@@ -165,13 +165,6 @@
             <div class="field">
                 <label>Date</label>
                 <input type="date" name="date" class="input" required>
-            </div>
-            <div class="field">
-                <label>Slot</label>
-                <select name="slot" class="input" required>
-                <option value="NONE" disabled selected>Select Slot</option>
-                    {% for slot in slots %}<option value="{{ slot.id }}">{{ slot.name }}</option>{% endfor %}
-                </select>
             </div>
             <div class="field">
                 <label>Batch</label>
@@ -234,15 +227,7 @@
                 <input type="date" name="date" id="edit-date" class="input" required>
             </div>
 
-            <div class="field">
-                <label>Slot</label>
-                <select name="slot" id="edit-slot" class="input" required>
-                    {% for slot in slots %}
-                        <option value="{{ slot.id }}">{{ slot.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
+    
             <div class="field">
                 <label>Batch</label>
                 <select name="batch" id="edit-batch" class="input" required>
@@ -320,9 +305,8 @@ function openDeleteLectureModal(id,title){
 }
 function closeDeleteLectureModal(){ document.getElementById("delete-lecture-modal").style.display = "none"; }
 
-function openEditLectureModal(id, date, slotId, batchId, lectureType, title) {
+function openEditLectureModal(id, date, batchId, lectureType, title) {
     document.getElementById("edit-date").value = date;
-    document.getElementById("edit-slot").value = slotId;
     document.getElementById("edit-batch").value = batchId;
     document.getElementById("edit-lecture-type").value = lectureType;
     document.getElementById("edit-title").value = title || "";

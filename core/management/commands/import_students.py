@@ -1,138 +1,130 @@
+import json
 from django.core.management.base import BaseCommand
-from students.models import Student
-from lectures.models import Batch, Slot
-from openpyxl import load_workbook
-from django.db import transaction
+from students.models import Student, Branch
+from lectures.models import Batch
+from django.utils.text import slugify
+import re
 
 
 class Command(BaseCommand):
-    help = "Import students from Excel file"
+    help = "Import students from JSON (batch-based, no slot)"
 
     def add_arguments(self, parser):
         parser.add_argument("file", type=str)
-        parser.add_argument(
-            "--dry-run",
-            action="store_true",
-            help="Validate only, do not write to DB",
-        )
+        parser.add_argument("--dry-run", action="store_true")
 
     def handle(self, *args, **options):
         file_path = options["file"]
         dry_run = options["dry_run"]
 
-        wb = load_workbook(file_path)
-
-        required_headers = [
-            "Full Name",
-            "Roll No.",
-            "Branch",
-            "Email",
-            "Contact",
-            "Parent Email",
-            "Parent Contact",
-        ]
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
 
         created = 0
-        errors = []
+        skipped = 0
 
-        slot_map = {
-            "Batch 1": "Slot 1",
-            "Batch 2": "Slot 1",
-            "Batch 3": "Slot 2",
-            "Batch 4": "Slot 3",
+        flags = {
+            "no_email": [],
+            "no_parent_email": [],
+            "used_alternate_parent_contact": [],
         }
 
-        try:
-            with transaction.atomic():
-                for sheet_name in wb.sheetnames:
-                    sheet = wb[sheet_name]
+        for _, row in data.items():
+            try: 
+                roll = row.get("roll_number")
+            except AttributeError:
+                self.stdout.write(self.style.ERROR(f"Invalid row format: {row}"))
+                skipped += 1
+                continue
+            name = row.get("name")
+            branch_name = row.get("branch")
+            batch_name = row.get("batch")
+            if not re.match(r'^(22|23|24|25)[A-Z]{2}\d{4}$', roll or ""):
+                self.stdout.write(self.style.ERROR(f"Invalid roll number '{roll}'"))
+                skipped += 1
+                continue
+            if not roll or not branch_name or not batch_name:
+                skipped += 1
+                continue
 
-                    headers = [
-                        str(c.value).strip().replace("\n", "").replace("\xa0", " ")
-                        for c in sheet[1]
-                    ]
+            try:
+                branch = Branch.objects.get(name__iexact=branch_name.strip())
+            except Branch.DoesNotExist:
+                self.stdout.write(
+                    self.style.ERROR(f"Unknown branch '{branch_name}' for {roll}")
+                )
+                skipped += 1
+                continue
 
-                    if not all(h in headers for h in required_headers):
-                        errors.append(
-                            f"{sheet_name}: Invalid headers → {headers}"
-                        )
-                        continue
+            try:
+                batch = Batch.objects.get(name=batch_name.strip())
+            except Batch.DoesNotExist:
+                self.stdout.write(
+                    self.style.ERROR(f"Unknown batch '{batch_name}' for {roll}")
+                )
+                skipped += 1
+                continue
 
-                    idx = {h: headers.index(h) for h in headers}
+            email = row.get("email_id") or None
+            contact = row.get("contact") or ""
 
-                    try:
-                        batch = Batch.objects.get(name=sheet_name)
-                        slot = Slot.objects.get(name=slot_map[sheet_name])
-                    except Exception:
-                        errors.append(f"{sheet_name}: Batch or Slot missing")
-                        continue
+            parent_email = row.get("parent_email")
+            parent_contact = row.get("parent_contact")
 
-                    for row_no, row in enumerate(sheet.iter_rows(min_row=2), start=2):
-                        roll = str(row[idx["Roll No."]].value).strip()
+            if not parent_email or parent_email.lower() == "na":
+                parent_email = row.get("parent_alternate_email")
+                flags["no_parent_email"].append(roll)
+            if not parent_contact or parent_contact.lower() == "na":
+               parent_contact = row.get("parent_alternate_contact")
+               flags["used_alternate_parent_contact"].append(roll)
 
-                        if not roll:
-                            errors.append(f"{sheet_name} Row {row_no}: Missing roll number")
-                            continue
 
-                        if Student.objects.filter(roll_number=roll).exists():
-                            errors.append(
-                                f"{sheet_name} Row {row_no}: Duplicate roll {roll}"
-                            )
-                            continue
+            if not email:
+                flags["no_email"].append(roll)
 
-                        Student(
-                            full_name=row[idx["Full Name"]].value,
-                            roll_number=roll,
-                            branch=row[idx["Branch"]].value,
-                            email=row[idx["Email"]].value,
-                            contact_number=str(row[idx["Contact"]].value),
-                            parent_email=row[idx["Parent Email"]].value,
-                            parent_contact_number=str(
-                                row[idx["Parent Contact"]].value
-                            ),
-                            batch=batch,
-                            slot=slot,
-                        ).full_clean()
+            if not parent_email:
+                flags["no_parent_email"].append(roll)
 
-                        if not dry_run:
-                            Student.objects.create(
-                                full_name=row[idx["Full Name"]].value,
-                                roll_number=roll,
-                                branch=row[idx["Branch"]].value,
-                                email=row[idx["Email"]].value,
-                                contact_number=str(row[idx["Contact"]].value),
-                                parent_email=row[idx["Parent Email"]].value,
-                                parent_contact_number=str(
-                                    row[idx["Parent Contact"]].value
-                                ),
-                                batch=batch,
-                                slot=slot,
-                            )
+            if dry_run:
+                created += 1
+                continue
 
-                        created += 1
+            obj, was_created = Student.objects.get_or_create(
+                roll_number=roll,
+                defaults={
+                    "full_name": name,
+                    "branch": branch,
+                    "batch": batch,
+                    "email": email or f"{slugify(roll)}@example.com",
+                    "contact_number": contact,
+                    "parent_email": parent_email or "",
+                    "parent_contact_number": parent_contact,
+                    "is_active": True,
+                },
+            )
 
-                if errors:
-                    raise Exception("Validation failed")
-
-                if dry_run:
-                    raise transaction.TransactionManagementError("Dry run rollback")
-
-        except Exception:
-            pass
-
-        if errors:
-            self.stderr.write(self.style.ERROR("IMPORT FAILED"))
-            for e in errors:
-                self.stderr.write(f" - {e}")
-            return
+            if was_created:
+                created += 1
+            else:
+                skipped += 1
 
         if dry_run:
             self.stdout.write(
-                self.style.WARNING(
+                self.style.SUCCESS(
                     f"DRY RUN OK → {created} students validated (no DB writes)"
                 )
             )
         else:
             self.stdout.write(
-                self.style.SUCCESS(f"IMPORT SUCCESS → {created} students added")
+                self.style.SUCCESS(f"IMPORTED → {created} students")
             )
+            self.stdout.write(
+                self.style.WARNING(f"SKIPPED → {skipped} students")
+            )
+
+        self.stdout.write("\nFlags summary:")
+        self.stdout.write(f"• No email: {len(flags['no_email'])}")
+        self.stdout.write(f"• No parent email: {len(flags['no_parent_email'])}")
+        self.stdout.write(
+            f"• Used alternate parent contact: {len(flags['used_alternate_parent_contact'])}"
+        )

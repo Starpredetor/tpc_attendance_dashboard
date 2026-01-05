@@ -1,20 +1,14 @@
 from django.contrib import admin
 from django.contrib import admin
-from .models import Batch, Slot, Lecture
+from .models import Batch, Lecture
 
-from lectures.models import Batch, Lecture, Slot
+from lectures.models import Batch, Lecture
 
 
 @admin.register(Batch)
 class BatchAdmin(admin.ModelAdmin):
     list_display = ('name',)
     search_fields = ('name',)
-
-
-@admin.register(Slot)
-class SlotAdmin(admin.ModelAdmin):
-    list_display = ("name", "date_ranges")
-    search_fields = ("name",)
 
 
 

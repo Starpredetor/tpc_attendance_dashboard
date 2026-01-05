@@ -32,7 +32,6 @@ def mark_absent_for_date(target_date: date | None = None):
     for lecture in lectures:
         students = Student.objects.filter(
             batch=lecture.batch,
-            slot=lecture.slot,
             is_active=True,
         )
 
