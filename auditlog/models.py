@@ -18,9 +18,10 @@ class AuditLog(models.Model):
         null=True,
         blank=True,
         related_name="audit_logs",
+        db_index=True,
     )
 
-    action_type = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    action_type = models.CharField(max_length=20, choices=ACTION_CHOICES, db_index=True)
     description = models.TextField()
 
     target_type = models.CharField(max_length=100, blank=True, null=True)
@@ -28,10 +29,14 @@ class AuditLog(models.Model):
 
     ip_address = models.GenericIPAddressField(null=True, blank=True)
 
-    timestamp = models.DateTimeField(auto_now_add=True)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         ordering = ["-timestamp"]
+        indexes = [
+            models.Index(fields=['-timestamp', 'action_type']),
+            models.Index(fields=['target_type', 'target_id']),
+        ]
 
     def __str__(self):
         return f"{self.action_type} by {self.actor} @ {self.timestamp}"

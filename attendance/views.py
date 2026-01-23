@@ -50,7 +50,7 @@ def mark_attendance(request):
     if request.method == "GET":
         return render(request, "attendance/volunteer_attendance_view.html")
 
-    roll_number = request.POST.get("roll_number")
+    roll_number = request.POST.get("roll_number", "").strip().upper()
     status = request.POST.get("status")
     session_part = request.POST.get("session_part", "BOTH")
 
@@ -58,12 +58,12 @@ def mark_attendance(request):
         messages.error(request, "Roll number and status are required.")
         return redirect("mark_attendance")
 
-    if not re.match(r'^(22|23|24)[A-Z]{2}\d{4}$', roll_number):
+    if not re.match(r'^(22|23|24|25)[A-Z]{2}\d{4}$', roll_number):
         messages.error(request, "Invalid roll number format. Enter manually.")
         return redirect("mark_attendance")
 
     try:
-        student = Student.objects.get(roll_number=roll_number, is_active=True)
+        student = Student.objects.select_related('batch').get(roll_number=roll_number, is_active=True)
     except Student.DoesNotExist:
         messages.error(request, "Invalid roll number. Student not found.")
         return redirect("mark_attendance")
@@ -133,40 +133,46 @@ def mark_absent(request, lecture_id):
         messages.error(request, "Invalid request method.")
         return redirect("manage_lectures")
 
+    # Get all students for the batch - prefetch to optimize
     all_students = Student.objects.filter(
         batch=lecture.batch,
         is_active=True,
     )
 
+    # Get IDs of students already marked present - use only()
     present_student_ids = AttendanceRecord.objects.filter(
         lecture=lecture,
         status="P",
     ).values_list("student_id", flat=True)
 
+    # Get students to mark absent
     students_to_mark_absent = all_students.exclude(
         id__in=present_student_ids
     )
 
-    created_count = 0
-    updated_count = 0
-
+    # Bulk create for efficiency
+    absent_records = []
     for student in students_to_mark_absent:
-        obj, created = AttendanceRecord.objects.update_or_create(
-            student=student,
-            lecture=lecture,
-            defaults={
-                "status": "A",
-                "marked_by": request.user,
-            },
+        absent_records.append(
+            AttendanceRecord(
+                student=student,
+                lecture=lecture,
+                status="A",
+                marked_by=request.user,
+            )
         )
-        if created:
-            created_count += 1
-        else:
-            updated_count += 1
+    
+    # Use bulk_create with update_conflicts for better performance
+    AttendanceRecord.objects.bulk_create(
+        absent_records,
+        update_conflicts=True,
+        update_fields=['status', 'marked_by'],
+        unique_fields=['student', 'lecture']
+    )
 
     messages.success(
         request,
-        f"Marked ABSENT for {created_count + updated_count} students "
+        f"Marked ABSENT for {len(absent_records)} students "
         f"(Lecture: {lecture.date}, {lecture.batch.name})"
     )
     create_audit_log(

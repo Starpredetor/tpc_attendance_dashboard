@@ -10,24 +10,25 @@ from .models import Lecture, Batch
 
 @login_required
 def manage_lectures(request):
-    lectures = Lecture.objects.all().order_by("-date", "lecture_type")
-    batches = Batch.objects.all()
+    lectures = Lecture.objects.all().select_related('batch', 'created_by').order_by("-date", "lecture_type")
+    batches = Batch.objects.all().order_by('name')
 
     if request.method == "POST":
         try:
             Lecture.objects.create(
                 date=request.POST["date"],
                 batch_id=request.POST["batch"],
-                title=request.POST.get("title"),
+                title=request.POST.get("title", "").strip(),
                 lecture_type=request.POST["lecture_type"],
                 created_by=request.user,
             )
+            messages.success(request, "Lecture created successfully.")
             return redirect("manage_lectures")
         except Exception as e:
-            if "unique constraint" in str(e):
-                messages.error(request, "Lecture already exists.")
+            if "unique constraint" in str(e).lower():
+                messages.error(request, "Lecture already exists for this batch, date, and session.")
             else:
-                messages.error(request, "Error creating lecture.")
+                messages.error(request, f"Error creating lecture: {str(e)}")
 
     return render(
         request,
@@ -41,32 +42,33 @@ def manage_lectures(request):
 
 @login_required
 def create_lecture(request):
+    if request.method != "POST":
+        return redirect("manage_lectures")
+        
     try:
-        if request.method == "POST":
-            lecture = Lecture.objects.create(
-                date=request.POST["date"],
-                batch_id=request.POST["batch"],
-                title=request.POST.get("title"),
-                lecture_type=request.POST["lecture_type"],
-                created_by=request.user,
-            )
-            messages.success(request, "Lecture created successfully.")
+        lecture = Lecture.objects.create(
+            date=request.POST["date"],
+            batch_id=request.POST["batch"],
+            title=request.POST.get("title", "").strip(),
+            lecture_type=request.POST["lecture_type"],
+            created_by=request.user,
+        )
+        messages.success(request, "Lecture created successfully.")
 
-            create_audit_log(
-                request=request,
-                action_type="CREATE",
-                description=f"Lecture created for {lecture.batch.name} on {lecture.date}",
-                target=lecture,
-            )
+        create_audit_log(
+            request=request,
+            action_type="CREATE",
+            description=f"Lecture created for {lecture.batch.name} on {lecture.date}",
+            target=lecture,
+        )
 
-            return redirect("manage_lectures")
+        return redirect("manage_lectures")
     except Exception as e:
-        if "unique constraint" in str(e):
-            messages.error(request, "Lecture already exists.")
-            return redirect("manage_lectures")
+        if "unique constraint" in str(e).lower():
+            messages.error(request, "Lecture already exists for this batch, date, and session.")
         else:
-            messages.error(request, "Error creating lecture.") 
-            return redirect("manage_lectures")
+            messages.error(request, f"Error creating lecture: {str(e)}") 
+        return redirect("manage_lectures")
         
 
 

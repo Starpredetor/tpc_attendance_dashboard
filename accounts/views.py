@@ -12,6 +12,7 @@ from django.utils import timezone
 from django.contrib.auth.views import PasswordChangeView
 from django.urls import reverse_lazy
 from auditlog.utils import create_audit_log
+from django.db import models
 
 
 
@@ -26,23 +27,18 @@ def login_view(request):
 
         if user is not None:
             login(request, user)
+            
+            # Single audit log entry for login
+            create_audit_log(
+                request=request,
+                actor=user,
+                action_type="LOGIN",
+                description=f"{user.role} user logged in",
+            )
 
             if user.role == "ADMIN":
-                create_audit_log(
-                    request=request,
-                    actor=user,
-                    action_type="LOGIN",
-                    description="User logged in",
-                )
-
                 return redirect("admin_dashboard")
             elif user.role == "VOLUNTEER":
-                create_audit_log(
-                    request=request,
-                    actor=user,
-                    action_type="LOGIN",
-                    description="User logged in",
-                )
                 return redirect("volunteer_dashboard")
 
         messages.error(request, "Invalid credentials")
@@ -107,26 +103,31 @@ def admin_dashboard(request):
 
     critical_defaulters = []
 
-    students = Student.objects.filter(is_active=True).select_related("batch")
+    # Optimize with prefetch_related
+    students = Student.objects.filter(is_active=True).select_related("batch", "branch").prefetch_related(
+        models.Prefetch(
+            'attendancerecord_set',
+            queryset=AttendanceRecord.objects.filter(status="P", lecture__date__lte=today)
+        )
+    )
+    
+    # Pre-fetch lecture counts per batch
+    from django.db.models import Count, Q
+    batch_lecture_counts = dict(
+        Lecture.objects.filter(date__lte=today).values('batch').annotate(count=Count('id')).values_list('batch', 'count')
+    )
 
     for student in students:
-        total_lectures = Lecture.objects.filter(
-            batch=student.batch,
-            date__lte=today,
-        ).count()
+        total_lectures = batch_lecture_counts.get(student.batch_id, 0)
 
         if total_lectures == 0:
             continue
 
-        present_count = AttendanceRecord.objects.filter(
-            student=student,
-            status="P",
-            lecture__date__lte=today,
-        ).count()
+        present_count = student.attendancerecord_set.count()
 
         attendance_percent = round((present_count / total_lectures) * 100, 2)
 
-        if attendance_percent < 75:  # Chanagble value 
+        if attendance_percent < 75:  # Changeable value 
             critical_defaulters.append({
                 "id": student.id,
                 "roll_no": student.roll_number,
@@ -175,12 +176,12 @@ def volunteer_dashboard(request):
     total_present_today = 0
 
     for lecture in todays_lectures:
-        students_qs = Student.objects.filter(
+        students_count = Student.objects.filter(
             batch=lecture.batch,
             is_active=True,
-        )
+        ).count()
 
-        total_expected_today += students_qs.count()
+        total_expected_today += students_count
 
         total_present_today += AttendanceRecord.objects.filter(
             lecture=lecture,
@@ -195,26 +196,6 @@ def volunteer_dashboard(request):
         today_present_percent = 0
 
 
-    students = Student.objects.filter(is_active=True).select_related("batch")
-
-    for student in students:
-        total_lectures = Lecture.objects.filter(
-            batch=student.batch,
-            date__lte=today,
-        ).count()
-
-        if total_lectures == 0:
-            continue
-
-        present_count = AttendanceRecord.objects.filter(
-            student=student,
-            status="P",
-            lecture__date__lte=today,
-        ).count()
-
-        attendance_percent = round((present_count / total_lectures) * 100, 2)
-
-
     return render(
         request,
         "dashboards/volunteer_dashboard.html",
@@ -223,8 +204,6 @@ def volunteer_dashboard(request):
             "today_present_percent": today_present_percent,
         },
     )
-
-    return render(request, "dashboards/volunteer_dashboard.html")
 
 @login_required
 def dashboard_redirect(request):
