@@ -17,6 +17,10 @@
         --offwhite: #fcf5ef;
         --brown: #231c16;
         --sidebar-width: 240px;
+        --muted: #666;
+        --border: #ddd;
+        --green: #2ecc71;
+        --blue: #3498db;
       }
 
       html,
@@ -171,6 +175,50 @@
         padding: 10px;
         font-size: 14px;
       }
+
+      /* Shared UI */
+      .btn {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        font-weight: bold;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .btn-primary { background-color: var(--red); color: var(--offwhite); }
+      .btn-secondary { background-color: var(--muted); color: var(--offwhite); }
+      .btn-outline { background: transparent; border: 1px solid var(--red); color: var(--red); }
+
+      .toolbar {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+      .toolbar .spacer { margin-left: auto; }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 12px;
+        background: #fff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      }
+
+      .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:12px; }
+
+      .table { width:100%; border-collapse:collapse; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
+      .table th, .table td { padding:10px; border-bottom:1px solid var(--border); text-align:left; }
+      .table th { background-color: var(--red); color: var(--offwhite); }
+      .table tr:hover { background-color: #f3ece7; cursor:pointer; }
+
+      .pagination { margin-top:16px; display:flex; gap:8px; }
+      .pagination a, .pagination span { padding:6px 10px; border:1px solid var(--red); text-decoration:none; color:var(--red); border-radius:4px; font-weight:bold; }
+      .pagination .active { background-color: var(--red); color: var(--offwhite); }
     </style>
   </head>
 
@@ -205,6 +253,7 @@
             <ul class="sidebar-links">
                 <li><a href="{% url 'admin_dashboard' %}" class="{% nav_active request 'admin_dashboard' %}">Dashboard</a></li>
                 <li><a href="{% url 'admin_attendance_list' %}" class="{% nav_active request 'admin_attendance_list' %}">Students</a></li>
+              <li><a href="{% url 'batch_analysis_index' %}" class="{% nav_active request 'batch_analysis_index' %}">Batches</a></li>
                 <li><a href="{% url 'manage_lectures' %}" class="{% nav_active request 'manage_lectures' %}">Lectures</a></li>
                 <li><a href="{% url 'report' %}" class="{% nav_active request 'report' %}">Reports</a></li>
                 <li><a href="{% url 'notifications' %}">Notifications</a></li>

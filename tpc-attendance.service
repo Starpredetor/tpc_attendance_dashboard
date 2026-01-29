@@ -1,0 +1,33 @@
+[Unit]
+Description=TPC Attendance Dashboard
+Documentation=file:///var/www/tpc_attendance_dashboard/DEPLOYMENT.md
+After=network-online.target postgresql.service redis-server.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/tpc_attendance_dashboard
+
+# Run in live mode with gunicorn
+ExecStart=/var/www/tpc_attendance_dashboard/startup.sh live
+
+# Restart on failure
+Restart=on-failure
+RestartSec=10s
+
+# Resource limits
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tpc-attendance
+
+# Security settings
+PrivateTmp=yes
+NoNewPrivileges=yes
+
+# Timeout for startup
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

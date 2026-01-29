@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+{% block title %}{{ batch.name }} Analysis{% endblock %}
+{% block content %}
+<h2 style="margin-top:0;">Batch Dashboard: {{ batch.name }}</h2>
+
+<style>
+  .analysis-tabs { display:flex; gap:10px; border-bottom:2px solid #e0d6cc; margin:16px 0; flex-wrap:wrap; }
+  .analysis-tab { padding:10px 16px; font-weight:bold; cursor:pointer; border-radius:6px 6px 0 0; background:#f7efe9; }
+  .analysis-tab.active { background:#ffffff; border:1px solid #e0d6cc; border-bottom:none; }
+  .analysis-content { display:none; }
+  .analysis-content.active { display:block; }
+</style>
+
+<form method="get" class="toolbar card">
+  <label>Start
+    <input type="date" name="start_date" value="{{ start_date|date:'Y-m-d' }}" style="padding:8px;border:1px solid #ccc;border-radius:6px;">
+  </label>
+  <label>End
+    <input type="date" name="end_date" value="{{ end_date|date:'Y-m-d' }}" style="padding:8px;border:1px solid #ccc;border-radius:6px;">
+  </label>
+  {% if q %}<input type="hidden" name="q" value="{{ q }}">{% endif %}
+  {% if selected_branch %}<input type="hidden" name="branch" value="{{ selected_branch }}">{% endif %}
+  <input type="hidden" name="active" value="{{ active_only|yesno:'1,0' }}">
+  <input type="hidden" name="tab" value="overview" id="activeTabInput">
+  <button type="submit" class="btn btn-outline">Update Range</button>
+  <div class="spacer"></div>
+  <a href="{% url 'batch_analysis_index' %}" class="btn btn-secondary">Back to Batches</a>
+</form>
+
+<div class="analysis-tabs">
+  <div class="analysis-tab active" data-tab="overview">Overview</div>
+  <div class="analysis-tab" data-tab="students">Students</div>
+  <div class="analysis-tab" data-tab="stats">Statistics</div>
+</div>
+
+<div class="analysis-content active" id="tab-overview">
+  <div class="grid">
+    <div class="card">
+      <div style="opacity:0.7;">Attendance Rate</div>
+      <div style="font-size:28px;font-weight:bold;">{{ attendance_rate }}%</div>
+      <div style="opacity:0.7;">{{ students_count }} students • {{ total_sessions }} sessions</div>
+    </div>
+    <div class="card">
+      <div style="opacity:0.7;">Total Present</div>
+      <div style="font-size:28px;font-weight:bold;">{{ present_total }}</div>
+      <div style="opacity:0.7;">Across selected range</div>
+    </div>
+    <div class="card">
+      <div style="opacity:0.7;">Total Absent</div>
+      <div style="font-size:28px;font-weight:bold;">{{ absent_total }}</div>
+      <div style="opacity:0.7;">Across selected range</div>
+    </div>
+  </div>
+
+  <div class="grid" style="margin-top:14px;grid-template-columns:2fr 1fr;">
+    <div class="card">
+      <h3 style="margin-top:0;">Day-wise Attendance Trend</h3>
+      <canvas id="lineChart" style="max-height:260px;"></canvas>
+      <div style="margin-top:8px;opacity:0.7;">Range: {{ start_date|date:'d M Y' }} → {{ end_date|date:'d M Y' }}</div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Top 5 Defaulters</h3>
+      <table class="table" style="font-size:13px;">
+        <tr>
+          <th>Roll No</th>
+          <th>Name</th>
+          <th>Absences</th>
+        </tr>
+        {% for row in defaulters %}
+          <tr>
+            <td>{{ row.roll_number }}</td>
+            <td>{{ row.name|truncatewords:2 }}</td>
+            <td style="color:#e74c3c;font-weight:bold;">{{ row.absent }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3">No absences recorded.</td></tr>
+        {% endfor %}
+      </table>
+      <div style="margin-top:8px;opacity:0.7;font-size:12px;">Based on marked absences only</div>
+    </div>
+  </div>
+</div>
+
+<div class="analysis-content" id="tab-students">
+  <div class="card" style="margin-top:14px;">
+    <h3 style="margin-top:0;">Students in {{ batch.name }}</h3>
+    <form method="get" class="toolbar" style="margin-bottom:10px;">
+      <input type="hidden" name="start_date" value="{{ start_date|date:'Y-m-d' }}">
+      <input type="hidden" name="end_date" value="{{ end_date|date:'Y-m-d' }}">
+      <input type="hidden" name="tab" value="students">
+      <input type="text" name="q" value="{{ q }}" placeholder="Search by roll or name" style="padding:8px;border:1px solid #ccc;border-radius:6px;min-width:240px;">
+      <select name="branch" style="padding:8px;border:1px solid #ccc;border-radius:6px;">
+        <option value="">All Branches</option>
+        {% for b in branches %}
+          <option value="{{ b.id }}" {% if selected_branch == b.id|stringformat:'s' %}selected{% endif %}>{{ b.name }}</option>
+        {% endfor %}
+      </select>
+      <input type="hidden" name="active" value="0">
+      <label style="display:flex;align-items:center;gap:6px;">
+        <input type="checkbox" name="active" value="1" {% if active_only %}checked{% endif %}>
+        Active only
+      </label>
+      <button type="submit" class="btn btn-outline">Filter</button>
+      {% if q or selected_branch or not active_only %}
+        <a class="btn btn-secondary" href="?start_date={{ start_date|date:'Y-m-d' }}&end_date={{ end_date|date:'Y-m-d' }}&tab=students">Reset</a>
+      {% endif %}
+    </form>
+    <table class="table">
+      <tr>
+        <th>#</th>
+        <th>Roll No</th>
+        <th>Name</th>
+        <th>Branch</th>
+        <th>Present</th>
+        <th>Absent</th>
+        <th>Attendance %</th>
+        <th>Status</th>
+      </tr>
+      {% for row in page_obj %}
+        <tr onclick="window.location.href='{% url 'student_profile' row.id %}'">
+          <td>{{ page_obj.start_index|add:forloop.counter0 }}</td>
+          <td>{{ row.roll_number }}</td>
+          <td>{{ row.name }}</td>
+          <td>{{ row.branch }}</td>
+          <td>{{ row.present }}</td>
+          <td>{{ row.absent }}</td>
+          <td>{{ row.percent }}%</td>
+          <td>{% if row.is_active %}Active{% else %}Inactive{% endif %}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="8">No students found.</td></tr>
+      {% endfor %}
+    </table>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+      <div style="display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px;">
+        {% if page_obj.has_previous %}
+          <a class="btn btn-outline" href="?page={{ page_obj.previous_page_number }}&tab=students{% if filter_query %}&{{ filter_query }}{% endif %}">Prev</a>
+        {% endif %}
+        <span style="opacity:0.7;">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a class="btn btn-outline" href="?page={{ page_obj.next_page_number }}&tab=students{% if filter_query %}&{{ filter_query }}{% endif %}">Next</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<div class="analysis-content" id="tab-stats">
+  <div class="grid">
+    <div class="card">
+      <div style="opacity:0.7;">Branches</div>
+      <div style="font-size:28px;font-weight:bold;">{{ branch_stats|length }}</div>
+      <div style="opacity:0.7;">Active only: {{ active_only|yesno:"Yes,No" }}</div>
+    </div>
+    <div class="card">
+      <div style="opacity:0.7;">Largest Branch</div>
+      <div style="font-size:20px;font-weight:bold;">
+        {% if top_branch_by_count %}{{ top_branch_by_count.name }}{% else %}—{% endif %}
+      </div>
+      <div style="opacity:0.7;">
+        {% if top_branch_by_count %}{{ top_branch_by_count.count }} students{% else %}No data{% endif %}
+      </div>
+    </div>
+    <div class="card">
+      <div style="opacity:0.7;">Best Attendance (Branch)</div>
+      <div style="font-size:20px;font-weight:bold;">
+        {% if top_branch_by_attendance %}{{ top_branch_by_attendance.name }}{% else %}—{% endif %}
+      </div>
+      <div style="opacity:0.7;">
+        {% if top_branch_by_attendance %}{{ top_branch_by_attendance.attendance_rate }}%{% else %}No data{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="grid" style="margin-top:14px;grid-template-columns:2fr 1fr;">
+    <div class="card">
+      <h3 style="margin-top:0;">Branch-wise Student Distribution</h3>
+      <canvas id="branchBarChart" style="max-height:260px;"></canvas>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Branch Attendance Rates</h3>
+      <table class="table" style="font-size:13px;">
+        <tr>
+          <th>Branch</th>
+          <th>Students</th>
+          <th>Attendance %</th>
+        </tr>
+        {% for row in branch_stats %}
+          <tr>
+            <td>{{ row.name }}</td>
+            <td>{{ row.count }}</td>
+            <td>{{ row.attendance_rate }}%</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="3">No data available.</td></tr>
+        {% endfor %}
+      </table>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+  const dailyLabels = {{ daily_labels|safe }};
+  const dailyPercentages = {{ daily_percentages|safe }};
+
+  const tabs = document.querySelectorAll('.analysis-tab');
+  const contents = document.querySelectorAll('.analysis-content');
+  const urlParams = new URLSearchParams(window.location.search);
+  const activeTab = urlParams.get('tab') || 'overview';
+  const activeTabInput = document.getElementById('activeTabInput');
+
+  function setActiveTab(tab) {
+    tabs.forEach(t => t.classList.remove('active'));
+    contents.forEach(c => c.classList.remove('active'));
+    const tabEl = document.querySelector(`.analysis-tab[data-tab="${tab}"]`);
+    const contentEl = document.getElementById(`tab-${tab}`);
+    if (tabEl && contentEl) {
+      tabEl.classList.add('active');
+      contentEl.classList.add('active');
+    }
+    if (activeTabInput) {
+      activeTabInput.value = tab;
+    }
+  }
+
+  setActiveTab(activeTab);
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const tabName = tab.dataset.tab;
+      const params = new URLSearchParams(window.location.search);
+      params.set('tab', tabName);
+      window.history.replaceState({}, '', `${window.location.pathname}?${params.toString()}`);
+      setActiveTab(tabName);
+    });
+  });
+
+  const lineCtx = document.getElementById('lineChart');
+  if (lineCtx) {
+    new Chart(lineCtx, {
+      type: 'line',
+      data: {
+        labels: dailyLabels,
+        datasets: [{
+          label: 'Attendance %',
+          data: dailyPercentages,
+          backgroundColor: 'rgba(52, 152, 219, 0.2)',
+          borderColor: '#3498db',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            ticks: { callback: (v) => v + '%' }
+          }
+        },
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }
+
+  const branchLabels = [{% for row in branch_stats %}"{{ row.name }}"{% if not forloop.last %}, {% endif %}{% endfor %}];
+  const branchCounts = [{% for row in branch_stats %}{{ row.count }}{% if not forloop.last %}, {% endif %}{% endfor %}];
+
+  const branchCtx = document.getElementById('branchBarChart');
+  if (branchCtx) {
+    new Chart(branchCtx, {
+      type: 'doughnut',
+      data: {
+        labels: branchLabels,
+        datasets: [{
+          label: 'Students',
+          data: branchCounts,
+          backgroundColor: ['#9b59b6', '#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#1abc9c', '#34495e', '#e67e22']
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: {
+          legend: { display: true, position: 'bottom' }
+        }
+      }
+    });
+  }
+</script>
+{% endblock %}

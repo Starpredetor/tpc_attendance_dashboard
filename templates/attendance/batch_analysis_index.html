@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Batch Analysis{% endblock %}
+{% block content %}
+<h2>Batch-wise Attendance Analysis</h2>
+<p>Select a batch to view detailed charts and analysis.</p>
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-top:16px;">
+    {% for b in batches %}
+    <a href="{% url 'batch_attendance_analysis' b.id %}" style="display:flex;flex-direction:column;justify-content:center;align-items:center;padding:32px;border:1px solid #ddd;border-radius:8px;text-decoration:none;color:inherit;background:#ffffff;min-height:200px;box-shadow:0 2px 8px rgba(0,0,0,0.08);transition:all 0.3s;cursor:pointer;" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,0.15)';this.style.transform='translateY(-2px)';" onmouseout="this.style.boxShadow='0 2px 8px rgba(0,0,0,0.08)';this.style.transform='translateY(0)';">
+        <strong style="font-size:20px;margin-bottom:8px;">{{ b.name }}</strong>
+        <div style="opacity:0.7;font-size:14px;">View analysis</div>
+    </a>
+    {% empty %}
+    <div>No batches found.</div>
+    {% endfor %}
+</div>
+{% endblock %}

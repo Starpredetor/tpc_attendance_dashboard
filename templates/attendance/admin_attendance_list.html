@@ -3,138 +3,69 @@
 {% block title %}Attendance | Admin{% endblock %}
 
 {% block content %}
-<style>
-    .btn {
-        padding: 8px 12px;
-        background-color: var(--red);
-        color: var(--offwhite);
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: bold;
-        text-decoration: none;
-    }
-    .search-bar {
-        margin-bottom: 20px;
-        display: flex;
-        gap: 10px;
-    }
+<h2 style="margin-top:0;">Student Attendance Overview</h2>
 
-    .search-bar input {
-        padding: 8px;
-        width: 250px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-    }
+<form method="get" class="toolbar card">
+  <input type="text" name="q" placeholder="Search by roll no / name" value="{{ q }}" style="padding:8px;border:1px solid #ccc;border-radius:6px;min-width:220px;">
 
-    .search-bar button {
-        padding: 8px 14px;
-        background-color: var(--red);
-        color: var(--offwhite);
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: bold;
-    }
+  <select name="branch" style="padding:8px;border:1px solid #ccc;border-radius:6px;min-width:160px;">
+    <option value="">All Branches</option>
+    {% for br in branches %}
+      <option value="{{ br.id }}" {% if selected_branch == br.id|stringformat:"s" %}selected{% endif %}>{{ br.name }}</option>
+    {% endfor %}
+  </select>
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        background-color: #ffffff;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    }
+  <select name="batch" style="padding:8px;border:1px solid #ccc;border-radius:6px;min-width:160px;">
+    <option value="">All Batches</option>
+    {% for bt in batches %}
+      <option value="{{ bt.id }}" {% if selected_batch == bt.id|stringformat:"s" %}selected{% endif %}>{{ bt.name }}</option>
+    {% endfor %}
+  </select>
 
-    th, td {
-        padding: 10px;
-        border-right: 1px solid #fc8f8fff;
-        border-bottom: 1px solid #ddd;
-        text-align: left;
-    }
-    .first-header {
-        border-top-left-radius: 6px;
-    }
-    .last-header {
-        border-top-right-radius: 6px;
-    }
+  <label style="display:flex;align-items:center;gap:6px;">
+    <input type="checkbox" name="active" value="1" {% if active_only %}checked{% endif %}> Active only
+  </label>
 
-    th {
-        background-color: var(--red);
-        color: var(--offwhite);
-    }
+  <button type="submit" class="btn btn-outline">Apply Filters</button>
 
-    tr:hover {
-        background-color: #f3ece7;
-        cursor: pointer;
-    }
-
-    .pagination {
-        margin-top: 20px;
-        display: flex;
-        gap: 8px;
-    }
-
-    .pagination a {
-        padding: 6px 10px;
-        border: 1px solid var(--red);
-        text-decoration: none;
-        color: var(--red);
-        border-radius: 4px;
-        font-weight: bold;
-    }
-
-    .pagination .active {
-        background-color: var(--red);
-        border-radius: 4px;
-        padding: 6px 10px;
-        color: var(--offwhite);
-    }
-</style>
-
-<h2>Student Attendance Overview</h2>
-
-<form method="get" class="search-bar">
-    <input type="text" name="q" placeholder="Search by roll no / name" value="{{ request.GET.q }}">
-    <button type="submit">Search</button>
+  <div class="spacer"></div>
+  <a href="{% url 'batch_analysis_index' %}" class="btn btn-secondary">Batch-wise Analysis</a>
+  <a href="{% url 'mark_attendance' %}" class="btn btn-primary">Mark Attendance</a>
 </form>
 
-<div class="search-bar">
-    <a href="{% url 'mark_attendance' %}" class="btn">Mark Attendance</a>
-</div>
-
-<!-- STUDENT TABLE -->
-<table>
+<div class="card" style="overflow:auto;">
+  <table class="table">
     <tr>
-        <th class="first-header">Roll No</th>
-        <th>Name</th>
-        <th>Branch</th>
-        <th>Batch</th>
+      <th>Roll No</th>
+      <th>Name</th>
+      <th>Branch</th>
+      <th>Batch</th>
     </tr>
 
     {% for student in page_obj %}
-    <tr onclick="window.location.href='{% url 'student_profile' student.id %}'"style="cursor:pointer;">
-        <td>{{ student.roll_number }}</td>
-        <td>{{ student.full_name }}</td>
-        <td>{{ student.branch }}</td>
-        <td>{{ student.batch }}</td>
+    <tr onclick="window.location.href='{% url 'student_profile' student.id %}'">
+      <td>{{ student.roll_number }}</td>
+      <td>{{ student.full_name }}</td>
+      <td>{{ student.branch.name }}</td>
+      <td>{{ student.batch.name }}</td>
     </tr>
     {% empty %}
     <tr>
-        <td colspan="5">No students found</td>
+      <td colspan="4">No students found</td>
     </tr>
     {% endfor %}
-</table>
-
-<!-- PAGINATION -->
-<div class="pagination">
-    {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}&q={{ request.GET.q }}">Prev Page</a>
-    {% endif %}
-
-    <span class="active">{{ page_obj.number }}</span>
-
-    {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}&q={{ request.GET.q }}">Next Page</a>
-    {% endif %}
+  </table>
 </div>
 
+<div class="pagination">
+  {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}&q={{ q }}&branch={{ selected_branch }}&batch={{ selected_batch }}&active={% if active_only %}1{% else %}0{% endif %}">Prev</a>
+  {% endif %}
+
+  <span class="active">{{ page_obj.number }}</span>
+
+  {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}&q={{ q }}&branch={{ selected_branch }}&batch={{ selected_batch }}&active={% if active_only %}1{% else %}0{% endif %}">Next</a>
+  {% endif %}
+</div>
 {% endblock %}

@@ -201,7 +201,7 @@
                 <div class="card">
                     <h3>Recent Lectures Attended</h3>
                     <ul class="lecture-list">
-                        {% for lec in recent_lectures %}
+                        {% for lec in recent_lectures|slice:":5" %}
                             <li class="lecture-item">
                                 {{ lec.lecture.date }} —
                                 {{ lec.lecture.get_lecture_type_display }} —
@@ -215,15 +215,27 @@
             </div>
 
             <div class="overview-right">
-                <div class="card">
-                    <h3>Student Details</h3>
-                    <div class="detail-row"><strong>Email:</strong> {{ student.email }}</div>
-                    <div class="detail-row"><strong>Contact:</strong> {{ student.contact_number }}</div>
-                    <div class="detail-row"><strong>Parent Email:</strong> {{ student.parent_email }}</div>
-                    <div class="detail-row"><strong>Parent Contact:</strong> {{ student.parent_contact_number }}</div>
-                    <div class="detail-row">
-                        <strong>Status:</strong>
-                        {{ student.is_active|yesno:"Active,Inactive" }}
+                <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+                    <div class="card" style="flex:1;min-width:240px;">
+                        <h3>Attendance Breakdown</h3>
+                        <div style="width:100%;max-width:260px;margin:0 auto;">
+                            <canvas id="attendancePie" height="220"></canvas>
+                        </div>
+                        <div style="display:flex;gap:12px;justify-content:center;margin-top:8px;font-size:12px;">
+                            <span class="status-present">● Present {{ attendance_percent|default:"0" }}%</span>
+                            <span class="status-absent">● Absent {{ absent_percent|default:"0" }}%</span>
+                        </div>
+                    </div>
+                    <div class="card" style="flex:1;min-width:240px;">
+                        <h3>Student Details</h3>
+                        <div class="detail-row"><strong>Email:</strong> {{ student.email }}</div>
+                        <div class="detail-row"><strong>Contact:</strong> {{ student.contact_number }}</div>
+                        <div class="detail-row"><strong>Parent Email:</strong> {{ student.parent_email }}</div>
+                        <div class="detail-row"><strong>Parent Contact:</strong> {{ student.parent_contact_number }}</div>
+                        <div class="detail-row">
+                            <strong>Status:</strong>
+                            {{ student.is_active|yesno:"Active,Inactive" }}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -236,33 +248,52 @@
     <div class="card">
         <h3>Lecture Attendance History</h3>
 
-        <div style="margin-bottom:12px; font-size:13px;">
-            <span class="status-present">● Present</span>
-            &nbsp;&nbsp;
-            <span class="status-absent">● Absent</span>
-        </div>
+        <form method="post" style="margin-bottom:12px;">
+            {% csrf_token %}
+            <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+                <label style="display:flex;align-items:center;gap:6px;">
+                    <input type="checkbox" id="selectAllLectures">
+                    Select all
+                </label>
+                <select name="status" style="padding:8px;border:1px solid #ccc;border-radius:6px;">
+                    <option value="">Mark as...</option>
+                    <option value="P">Present</option>
+                    <option value="A">Absent</option>
+                </select>
+                <button type="submit" class="btn btn-outline">Update Selected</button>
+            </div>
 
-        <ul class="lecture-list">
-            {% for item in lecture_attendance %}
-                <li class="lecture-item">
-                    {{ item.lecture.date }} —
-                    {{ item.lecture.get_lecture_type_display }} —
-                    {{ item.lecture.title|default:"-" }}
-                    <br>
-                    <small style="color:#555;">
-                        {{ item.lecture.batch.name }}
-                    </small>
-                    <br>
-                    <strong class="{% if item.status == 'P' %}status-present{% else %}status-absent{% endif %}">
-                        {% if item.status == 'P' %}Present{% else %}Absent{% endif %}
-                    </strong>
-                </li>
-            {% empty %}
-                <li class="lecture-item">
-                    No lectures found.
-                </li>
-            {% endfor %}
-        </ul>
+            <div style="margin-top:12px; font-size:13px;">
+                <span class="status-present">● Present</span>
+                &nbsp;&nbsp;
+                <span class="status-absent">● Absent</span>
+            </div>
+
+            <ul class="lecture-list" style="margin-top:10px;">
+                {% for item in lecture_attendance %}
+                    <li class="lecture-item" style="display:flex;gap:10px;align-items:flex-start;">
+                        <input type="checkbox" name="lecture_ids" value="{{ item.lecture.id }}" class="lecture-checkbox" style="margin-top:4px;">
+                        <div>
+                            {{ item.lecture.date }} —
+                            {{ item.lecture.get_lecture_type_display }} —
+                            {{ item.lecture.title|default:"-" }}
+                            <br>
+                            <small style="color:#555;">
+                                {{ item.lecture.batch.name }}
+                            </small>
+                            <br>
+                            <strong class="{% if item.status == 'P' %}status-present{% else %}status-absent{% endif %}">
+                                {% if item.status == 'P' %}Present{% else %}Absent{% endif %}
+                            </strong>
+                        </div>
+                    </li>
+                {% empty %}
+                    <li class="lecture-item">
+                        No lectures found.
+                    </li>
+                {% endfor %}
+            </ul>
+        </form>
     </div>
 </div>
 
@@ -275,6 +306,7 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
 (function () {
     const tabs = document.querySelectorAll(".tab");
@@ -289,6 +321,45 @@
             document.getElementById(tab.dataset.tab).classList.add("active");
         });
     });
+
+    const pieCanvas = document.getElementById("attendancePie");
+    if (pieCanvas) {
+        const presentPct = parseFloat("{{ attendance_percent|default:'0' }}") || 0;
+        const absentPct = parseFloat("{{ absent_percent|default:'0' }}") || 0;
+
+        new Chart(pieCanvas, {
+            type: "pie",
+            data: {
+                labels: ["Present", "Absent"],
+                datasets: [{
+                    data: [presentPct, absentPct],
+                    backgroundColor: ["#2e7d32", "#c62828"],
+                    borderColor: "#ffffff",
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.label}: ${ctx.parsed}%`
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    const selectAll = document.getElementById("selectAllLectures");
+    if (selectAll) {
+        selectAll.addEventListener("change", () => {
+            document.querySelectorAll(".lecture-checkbox").forEach(cb => {
+                cb.checked = selectAll.checked;
+            });
+        });
+    }
 })();
 </script>
 {% endblock %}
