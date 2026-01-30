@@ -17,8 +17,23 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+
+class SuperUserAdminSite(admin.AdminSite):
+    """Custom admin site that only allows superusers"""
+    
+    def has_permission(self, request):
+        """Only allow superusers to access the admin panel"""
+        return request.user.is_active and request.user.is_superuser
+
+
+# Create custom admin site instance
+admin_site = SuperUserAdminSite(name='superadmin')
+
+# Re-register all models from the default admin site to the custom one
+admin_site._registry = admin.site._registry.copy()
+
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('admin/', admin_site.urls),
     path('', include('accounts.urls')),
     path("audit-logs/", include("auditlog.urls")),
     path("lectures/", include("lectures.urls")),

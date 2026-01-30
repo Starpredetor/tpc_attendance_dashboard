@@ -44,3 +44,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+    def has_perm(self, perm, obj=None):
+        """Only superusers have permissions in Django admin"""
+        if self.is_active and self.is_superuser:
+            return True
+        return False
+
+    def has_module_perms(self, app_label):
+        """Only superusers can access Django admin modules"""
+        if self.is_active and self.is_superuser:
+            return True
+        return False

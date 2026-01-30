@@ -27,5 +27,6 @@ class AttendanceRecordAdmin(admin.ModelAdmin):
     readonly_fields = ("student","lecture", "marked_by","marked_at","updated_at")
 
     def has_delete_permission(self, request, obj=None):
-        return request.user.role == "ADMIN"
+        # Only superusers can delete in Django admin
+        return request.user.is_superuser
     

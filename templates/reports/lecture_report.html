@@ -136,7 +136,7 @@
             </p>
         </div>
 
-        <form method="post" action="{% url 'lecture_attendance_report' %}">
+        <form method="post" action="{% url 'lecture_attendance_report' %}" id="lectureReportForm">
             {% csrf_token %}
 
             <div class="form-grid">
@@ -152,7 +152,7 @@
                     type="checkbox"
                     name="batches"
                     value="{{ batch.id }}"
-                    required
+                    class="batch-checkbox"
                 >
                 {{ batch.name }}
             </label>
@@ -162,6 +162,9 @@
                     <small style="color:#555;">
                         Select one or more batches
                     </small>
+                    <div id="batchError" style="color: #c62828; font-weight: bold; margin-top: 6px; display: none;">
+                        Please select at least one batch
+                    </div>
                 </div>
 
 
@@ -197,3 +200,28 @@
 
 </div>
 {% endblock %}
+
+<script>
+document.getElementById('lectureReportForm').addEventListener('submit', function(e) {
+    const checkboxes = document.querySelectorAll('.batch-checkbox:checked');
+    const errorDiv = document.getElementById('batchError');
+    
+    if (checkboxes.length === 0) {
+        e.preventDefault();
+        errorDiv.style.display = 'block';
+    } else {
+        errorDiv.style.display = 'none';
+    }
+});
+
+// Clear error message when user selects a batch
+document.querySelectorAll('.batch-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.batch-checkbox:checked');
+        const errorDiv = document.getElementById('batchError');
+        if (checkboxes.length > 0) {
+            errorDiv.style.display = 'none';
+        }
+    });
+});
+</script>
